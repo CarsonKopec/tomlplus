@@ -1,0 +1,74 @@
+# General
+release.py
+PUBLISHING.md
+secrets.env
+
+# Rust / Cargo
+target/
+Cargo.lock.bak
+**/*.rs.bk
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+*.egg-info/
+.venv/
+build/
+dist/
+*.whl
+
+# Node / TypeScript
+node_modules/
+out/
+*.tsbuildinfo
+*.node
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# WASM-pack
+crates/tomlplus-wasm/pkg-*/
+
+# Java / Gradle
+.gradle/
+.gradle-local/
+bindings/tomlplus-java/build/
+bindings/tomlplus-java/.gradle/
+*.class
+*.jar
+
+# .NET
+bin/
+obj/
+*.nupkg
+*.user
+
+# Ruby
+*.gem
+.bundle/
+Gemfile.lock
+
+# VS Code packaged
+*.vsix
+editors/vscode/out/
+editors/vscode/node_modules/
+
+# Release artefacts
+release/
+
+# Editor / OS
+.vscode/
+!editors/vscode/.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local logs / temp
+*.log
+tomlplus-lsp.log
+.tmp/

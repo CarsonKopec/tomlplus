@@ -1,0 +1,165 @@
+# Release — on a `vX.Y.Z` tag push, build every artefact on every supported
+# OS, gather them, then publish to every registry that has credentials set
+# as a GitHub Actions secret.
+#
+# Matrix:
+#   ubuntu-latest  →  linux-x86_64 wheels / .node / libtomlplus_ffi.so
+#   windows-latest →  windows-x86_64 wheels / .node / tomlplus_ffi.dll
+#   macos-13       →  macos-x86_64 wheels / .node / libtomlplus_ffi.dylib
+#   macos-14       →  macos-arm64 wheels / .node / libtomlplus_ffi.dylib
+#
+# All artefacts are uploaded to GitHub Actions storage, then a final
+# `publish` job downloads them into a single `release/` folder and runs
+# the dispatcher's publish step.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write   # gh release create
+
+jobs:
+  # ── Per-OS package step ───────────────────────────────────────────────────
+  package:
+    name: package on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: linux-x86_64
+          - os: windows-latest
+            arch: windows-x86_64
+          - os: macos-13
+            arch: macos-x86_64
+          - os: macos-14
+            arch: macos-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - name: Install Ruby ffi gem
+        run: gem install ffi --no-document
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+
+      - name: Build + test + package every artefact
+        working-directory: .
+        shell: bash
+        run: python release.py package -t all
+
+      - name: Upload staged artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tomlplus-${{ matrix.arch }}
+          path: release/
+          if-no-files-found: error
+
+  # ── Publish (single job, runs once all per-OS builds succeed) ─────────────
+  publish:
+    name: publish to every registry
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      # Pull every per-OS artefact bundle into a single staging dir.
+      - uses: actions/download-artifact@v4
+        with:
+          path: release/
+          merge-multiple: true
+
+      - name: List staged artefacts
+        run: ls -lh release/
+
+      - name: Run publish dispatcher
+        working-directory: .
+        shell: bash
+        env:
+          PYPI_TOKEN:            ${{ secrets.PYPI_TOKEN }}
+          NPM_TOKEN:             ${{ secrets.NPM_TOKEN }}
+          CARGO_REGISTRY_TOKEN:  ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          NUGET_API_KEY:         ${{ secrets.NUGET_API_KEY }}
+          NUGET_FEED_URL:        ${{ secrets.NUGET_FEED_URL }}
+          # Sonatype Central Portal (io.github.carsonkopec namespace).
+          # See PUBLISHING.md §7 for how to claim the namespace + generate
+          # user tokens + create a GPG key.
+          CENTRAL_USERNAME:      ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD:      ${{ secrets.CENTRAL_PASSWORD }}
+          SIGN_KEY:              ${{ secrets.SIGN_KEY }}
+          SIGN_PASSWORD:         ${{ secrets.SIGN_PASSWORD }}
+          VSCE_PAT:              ${{ secrets.VSCE_PAT }}
+          OVSX_PAT:              ${{ secrets.OVSX_PAT }}
+          RUBYGEMS_API_KEY:      ${{ secrets.RUBYGEMS_API_KEY }}
+          GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
+          # `.npmrc` auth via env (set up by actions/setup-node above):
+          NODE_AUTH_TOKEN:       ${{ secrets.NPM_TOKEN }}
+        run: |
+          python release.py publish -t all
+
+      - name: Upload GitHub Release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF##*/}"
+          gh release create "$TAG" \
+            --title "TOML+ $TAG" \
+            --generate-notes \
+            release/*

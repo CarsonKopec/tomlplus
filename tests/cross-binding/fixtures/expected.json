@@ -1,0 +1,54 @@
+{
+  "app.name": "kitchen-sink",
+  "builtins": {
+    "no": false,
+    "nothing": null,
+    "yes": true
+  },
+  "debug": false,
+  "empty": null,
+  "features": {
+    "colors": {
+      "primary": "#FF0000",
+      "secondary": "#00FF00"
+    }
+  },
+  "numerics": {
+    "bin": 22,
+    "hex_lower": 255,
+    "hex_upper": 255,
+    "neg": -16,
+    "neg_hex": -16,
+    "oct": 493,
+    "scientific": 1500.0,
+    "underscore": 1000000
+  },
+  "server": {
+    "cors": {
+      "methods": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE"
+      ],
+      "origin": "https://api.example.com"
+    },
+    "endpoints": [
+      "https://api.example.com/v1",
+      "https://api.example.com/v2",
+      "https://api.example.com/healthz"
+    ],
+    "fallback": 42,
+    "log_level": "info",
+    "pool": {
+      "backoff": {
+        "max_size": 20,
+        "min_size": 2,
+        "timeout": 30
+      }
+    },
+    "port": 8080,
+    "slug": "my-service-42"
+  },
+  "version": "1.0.0"
+}

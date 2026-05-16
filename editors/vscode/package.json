@@ -1,0 +1,52 @@
+{
+  "name": "tomlplus",
+  "displayName": "TOML+",
+  "description": "TOML+ language support — syntax, validation, hover, completion via tomlplus-lsp.",
+  "version": "0.1.0",
+  "publisher": "Carson Kopec",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Linters"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:tomlplus"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tomlplus",
+        "aliases": ["TOML+", "tomlplus"],
+        "extensions": [".tomlp"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tomlplus",
+        "scopeName": "source.tomlplus",
+        "path": "./syntaxes/tomlplus.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "TOML+",
+      "properties": {
+        "tomlplus.serverPath": {
+          "type": "string",
+          "default": "tomlplus-lsp",
+          "description": "Path to the tomlplus-lsp executable (or a name on PATH)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch":   "tsc -p ./ -w"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node":   "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript":    "^5.4.0"
+  }
+}

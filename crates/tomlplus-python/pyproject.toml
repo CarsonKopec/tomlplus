@@ -1,0 +1,31 @@
+[build-system]
+requires      = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name        = "tomlplus"
+version     = "2.0.0"
+description = "TOML+ — extended configuration format (Rust-backed)"
+readme      = "README.md"
+license     = { text = "MIT" }
+requires-python = ">=3.8"
+authors = [{ name = "Carson Kopec", email = "kopeccarson@gmail.com" }]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["toml", "config", "configuration", "parser", "annotations"]
+
+[project.urls]
+Homepage   = "https://github.com/CarsonKopec/tomlplus"
+Repository = "https://github.com/CarsonKopec/tomlplus"
+
+[tool.maturin]
+manifest-path  = "Cargo.toml"
+module-name    = "tomlplus._native"
+python-source  = "python"
+features       = ["pyo3/extension-module"]
+strip          = true

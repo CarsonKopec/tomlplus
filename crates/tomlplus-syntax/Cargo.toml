@@ -1,0 +1,19 @@
+[package]
+name        = "tomlplus-syntax"
+description = "TOML+ language core: lexer, parser, validator with source spans"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+authors     = { workspace = true }
+repository  = { workspace = true }
+
+[dependencies]
+thiserror  = { workspace = true }
+regex-lite = "0.1"
+chrono     = { version = "0.4", default-features = false, features = ["clock", "std", "wasmbind"] }
+
+# `hostname` doesn't compile on wasm32; the WASM builtin returns "" instead.
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+hostname = "0.4"
+
+[dev-dependencies]

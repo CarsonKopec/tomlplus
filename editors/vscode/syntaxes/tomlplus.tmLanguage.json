@@ -1,0 +1,76 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TOML+",
+  "scopeName": "source.tomlplus",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#section" },
+    { "include": "#annotation" },
+    { "include": "#key" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#boolean" },
+    { "include": "#null" },
+    { "include": "#variable" },
+    { "include": "#dict" }
+  ],
+  "repository": {
+    "comment": {
+      "match": "#(?!\\{).*$",
+      "name":  "comment.line.number-sign.tomlplus"
+    },
+    "section": {
+      "match": "^\\s*\\[([^\\[\\]]+)\\]\\s*$",
+      "captures": {
+        "1": { "name": "entity.name.namespace.tomlplus" }
+      }
+    },
+    "annotation": {
+      "match": "^\\s*(@[A-Za-z_][A-Za-z0-9_]*)(.*)$",
+      "captures": {
+        "1": { "name": "storage.modifier.annotation.tomlplus" },
+        "2": { "patterns": [
+          { "include": "#string" },
+          { "include": "#number" }
+        ] }
+      }
+    },
+    "key": {
+      "match": "^\\s*(\"[^\"]+\"|[A-Za-z0-9_\\-]+)(?=\\s*=)",
+      "name":  "variable.other.key.tomlplus"
+    },
+    "string": {
+      "begin": "\"",
+      "end":   "\"",
+      "name":  "string.quoted.double.tomlplus",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.tomlplus" }
+      ]
+    },
+    "number": {
+      "match": "\\b-?(?:0[xX][0-9a-fA-F_]+|0[oO][0-7_]+|0[bB][01_]+|\\d[\\d_]*(?:\\.\\d[\\d_]*)?(?:[eE][-+]?\\d+)?)\\b",
+      "name":  "constant.numeric.tomlplus"
+    },
+    "boolean": { "match": "\\b(true|false)\\b", "name": "constant.language.boolean.tomlplus" },
+    "null":    { "match": "\\bnull\\b",        "name": "constant.language.null.tomlplus" },
+    "variable": {
+      "match": "\\$(ENV\\.[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*)",
+      "name":  "variable.other.tomlplus"
+    },
+    "dict": {
+      "begin": "#\\{",
+      "end":   "\\}#",
+      "name":  "meta.dict.tomlplus",
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#annotation" },
+        { "include": "#key" },
+        { "include": "#string" },
+        { "include": "#number" },
+        { "include": "#boolean" },
+        { "include": "#null" },
+        { "include": "#variable" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,93 @@
+# Cross-binding integration fixture.
+#
+# Exercises every TOML+ feature whose output is *deterministic* across runs
+# (no $NOW / $HOSTNAME / $PID / $CWD / $TODAY / $PLATFORM, since those vary
+# by environment).
+#
+# Every binding (Python, Node, WASM, Java, .NET, Go, Ruby, plus the Rust
+# CLI as the canonical reference) must parse this file and produce the
+# same JSON, modulo float precision.
+
+# Top-level scalars must come BEFORE the [vars] section, since [vars] stays
+# in vars-mode until the next section header.
+"app.name" = "kitchen-sink"
+version    = "1.0.0"
+debug      = false
+empty      = null
+
+[vars]
+base_url = "https://api.example.com"
+timeout  = 30
+mask     = 0xff
+
+# ── Section + leaf-key annotations ───────────────────────────────────────────
+[server]
+@tag: owner = "platform"
+
+@type: int
+@min: 1
+@max: 65535
+port = 8080
+
+@type: string
+@enum: [debug, info, warn, error]
+log_level = "info"
+
+@type: string
+@pattern: "^[a-z][a-z0-9_-]+$"
+slug = "my-service-42"
+
+# Multi-line array with arithmetic on $vars
+endpoints = [
+  $base_url + "/v1",
+  $base_url + "/v2",
+  $base_url + "/healthz",
+]
+
+# `$ENV.X` falls back when the env var is unset. The variable name below
+# is deliberately fingerprinted so no real environment has it set.
+@type: int
+fallback = $ENV.TOMLPLUS_XBINDING_UNSET_47B11 ?? 42
+
+# ── Dotted nested section ────────────────────────────────────────────────────
+[server.cors]
+@required
+origin  = $base_url
+methods = ["GET", "POST", "PUT", "DELETE"]
+
+# ── Block dict with per-entry annotations ────────────────────────────────────
+[server.pool]
+backoff = #{
+  @type: int
+  @min: 1
+  min_size = 2
+
+  @type: int
+  @max: 100
+  max_size = 20
+
+  @type: int
+  @positive
+  timeout = $timeout
+}#
+
+# ── Numeric literal formats ──────────────────────────────────────────────────
+[numerics]
+hex_lower    = 0xff
+hex_upper    = 0XFF
+oct          = 0o755
+bin          = 0b10110
+underscore   = 1_000_000
+neg          = -16
+scientific   = 1.5e3
+neg_hex      = -0x10
+
+# ── Inline dict (single-line) ────────────────────────────────────────────────
+[features]
+colors = #{ primary = "#FF0000", secondary = "#00FF00" }#
+
+# ── Static builtins (deterministic across runs) ──────────────────────────────
+[builtins]
+yes      = $TRUE
+no       = $FALSE
+nothing  = $NULL

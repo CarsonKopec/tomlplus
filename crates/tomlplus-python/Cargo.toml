@@ -1,0 +1,18 @@
+[package]
+name        = "tomlplus-python"
+description = "Python bindings (pyo3) for the TOML+ language core"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+authors     = { workspace = true }
+repository  = { workspace = true }
+
+[lib]
+name       = "tomlplus_native"
+crate-type = ["cdylib"]
+
+[dependencies]
+tomlplus-syntax = { workspace = true }
+# `extension-module` tells pyo3 we're being built by maturin into a wheel.
+# `abi3-py38` produces a single wheel compatible with CPython 3.8+.
+pyo3 = { version = "0.22", features = ["extension-module", "abi3-py38"] }

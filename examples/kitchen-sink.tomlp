@@ -1,0 +1,68 @@
+# Kitchen-sink TOML+ example used by the CLI smoke test.
+# Exercises: dotted sections, quoted keys, hex/oct/bin/underscore numerics,
+# multi-line arrays, expressions in arrays, $vars, $ENV with ?? fallback,
+# annotations (including @deprecated and @tag), block dicts with per-entry
+# annotations.
+
+[vars]
+base_url = "https://api.example.com"
+timeout  = 30
+mask     = 0xff
+
+[app]
+@tag: owner = "platform"
+name    = "kitchen-sink"
+version = "1.0.0"
+
+@type: int
+@min: 1
+@max: 65535
+port = $ENV.APP_PORT ?? 8080
+
+@type: string
+@enum: [debug, info, warn, error]
+log_level = $ENV.LOG_LEVEL ?? "info"
+
+@type: string
+@pattern: "^[a-z][a-z0-9_-]+$"
+slug = "my-service-42"
+
+@type: list[string]
+endpoints = [
+  $base_url + "/v1",
+  $base_url + "/v2",
+  $base_url + "/healthz",
+]
+
+@deprecated("use connection_string")
+db_url = "postgres://localhost/old"
+
+[app.cors]
+@required
+access-control-allow-origin = $base_url
+
+@type: list[string]
+methods = ["GET", "POST", "PUT", "DELETE"]
+
+[app.pool]
+backoff = #{
+  @type: int
+  @min: 1
+  min_size = 2,
+
+  @type: int
+  @max: 100
+  max_size = 20,
+
+  @type: int
+  @positive
+  timeout = $timeout
+}#
+
+["weird key.with dot"]
+ok = true
+
+[features]
+flags = 0b10110
+perms = 0o755
+big   = 1_000_000

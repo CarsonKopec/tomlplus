@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/tomlplus-syntax",
+    "crates/tomlplus-lsp",
+    "crates/tomlplus-cli",
+    "crates/tomlplus-python",
+    "crates/tomlplus-ffi",
+    "crates/tomlplus-node",
+    "crates/tomlplus-wasm",
+]
+
+[workspace.package]
+version      = "0.1.0"
+edition      = "2021"
+license      = "MIT"
+authors      = ["Carson Kopec <kopeccarson@gmail.com>"]
+repository   = "https://github.com/CarsonKopec/tomlplus"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# Path + version: path is used for local builds, version is what dependents
+# resolve from crates.io after publish. Both fields are required so
+# `cargo publish` can strip the path and rely on the registry version.
+tomlplus-syntax = { path = "crates/tomlplus-syntax", version = "0.1.0" }
+
+# Async runtime + LSP
+tokio       = { version = "1.40", features = ["full"] }
+tower-lsp   = "0.20"
+serde       = { version = "1.0",  features = ["derive"] }
+serde_json  = "1.0"
+
+# Text + concurrency
+ropey       = "1.6"
+dashmap     = "6.1"
+
+# Diagnostics
+thiserror   = "1.0"
+
+[profile.release]
+lto          = "thin"
+codegen-units= 1
+strip        = "symbols"

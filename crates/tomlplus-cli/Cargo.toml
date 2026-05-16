@@ -1,0 +1,16 @@
+[package]
+name        = "tomlplus-cli"
+description = "Command-line tools for the TOML+ configuration format"
+version     = { workspace = true }
+edition     = { workspace = true }
+license     = { workspace = true }
+authors     = { workspace = true }
+repository  = { workspace = true }
+
+[[bin]]
+name = "tomlpr"   # short name to avoid colliding with the Python `tomlplus`
+path = "src/main.rs"
+
+[dependencies]
+tomlplus-syntax = { workspace = true }
+serde_json      = { workspace = true }
