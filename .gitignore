@@ -1,6 +1,7 @@
 # General
 release.py
 PUBLISHING.md
+secrets/
 secrets.env
 
 # Rust / Cargo
