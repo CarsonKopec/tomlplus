@@ -5,8 +5,11 @@
 # Matrix:
 #   ubuntu-latest  →  linux-x86_64 wheels / .node / libtomlplus_ffi.so
 #   windows-latest →  windows-x86_64 wheels / .node / tomlplus_ffi.dll
-#   macos-13       →  macos-x86_64 wheels / .node / libtomlplus_ffi.dylib
 #   macos-14       →  macos-arm64 wheels / .node / libtomlplus_ffi.dylib
+#
+# GitHub retired the macos-13 (Intel) runner. Users on Intel Macs install
+# from source via pip/cargo/gem; we can add cross-compilation back to the
+# matrix (rustup target add x86_64-apple-darwin) if there's demand.
 #
 # All artefacts are uploaded to GitHub Actions storage, then a final
 # `publish` job downloads them into a single `release/` folder and runs
@@ -34,8 +37,6 @@ jobs:
             arch: linux-x86_64
           - os: windows-latest
             arch: windows-x86_64
-          - os: macos-13
-            arch: macos-x86_64
           - os: macos-14
             arch: macos-arm64
     steps:
