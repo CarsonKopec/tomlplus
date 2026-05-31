@@ -1,143 +1,153 @@
 # TOML+
 
-> TOML, plus block dictionaries, annotations, and variables.
-
 [![CI](https://github.com/CarsonKopec/tomlplus/actions/workflows/ci.yml/badge.svg)](https://github.com/CarsonKopec/tomlplus/actions/workflows/ci.yml)
 [![Release](https://github.com/CarsonKopec/tomlplus/actions/workflows/release.yml/badge.svg)](https://github.com/CarsonKopec/tomlplus/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/github/license/CarsonKopec/tomlplus)](LICENSE)
-[![GitHub release](https://img.shields.io/github/v/release/CarsonKopec/tomlplus?include_prereleases&label=latest&color=blue)](https://github.com/CarsonKopec/tomlplus/releases)
-[![Bindings](https://img.shields.io/badge/bindings-8-blueviolet)](#install)
+[![Latest release](https://img.shields.io/github/v/release/CarsonKopec/tomlplus?include_prereleases&color=blue)](https://github.com/CarsonKopec/tomlplus/releases)
+
+TOML, but with three things it didn't have:
 
 ```toml
-[vars]
+[vars]                                  # variables you can reference later
 base_url = "https://api.example.com"
 
 [server]
-@type: int
+@type: int                              # annotations, validated at parse time
 @min: 1
 @max: 65535
-port = $ENV.PORT ?? 8080
+port = $ENV.PORT ?? 8080                # env vars with a fallback
 
-cors = #{
-    @required
-    access-control-allow-origin = $base_url
+cors = #{                               # block dictionaries
+  @required
+  access-control-allow-origin = $base_url
 }#
 ```
 
-A pragmatic config language: every `.tomlp` file is also a valid mental model
-for a developer who knows TOML. Three additions:
+That's the whole pitch. Every `.toml` file is a valid `.tomlp`, so adoption
+is one rename. The three additions:
 
-| Feature | Why |
-| --- | --- |
-| **Block dictionaries** (`#{ … }#`) | Inline-nested config without a new `[section]` header |
-| **Annotations** (`@required`, `@type: int`, `@enum: […]`, `@deprecated("…")`) | Schema declared next to the value, validated at parse time |
-| **Variables** (`$base`, `$ENV.X ?? fallback`, `$base + "/v1"`) | DRY repeated values, pull env, do tiny arithmetic |
+- **Block dictionaries** (`#{ … }#`). Inline-nested config without inventing
+  another `[a.b.c.headers]` section every time you go one level deeper.
+- **Annotations** (`@required`, `@type: int`, `@min`, `@enum: [debug, info]`,
+  `@pattern: "regex"`, `@deprecated("use new_key")`). The parser validates
+  them at load time and the editor flags violations as you type.
+- **Variables** (`[vars]` block, `$name`, `$ENV.X ?? fallback`, arithmetic
+  like `$base_url + "/v1"` or `$timeout * 2`). Stops the copy-paste-the-
+  same-API-URL-in-six-places pattern.
 
 ## Install
 
-One Rust core, **eight** first-class bindings — every one produces
-byte-identical JSON for any `.tomlp` file (enforced by a cross-binding
-integration test on every push).
-
-| Language | Install | Version |
-| --- | --- | --- |
-| **Python** ≥3.8 | `pip install tomlplus` | [![PyPI](https://img.shields.io/pypi/v/tomlplus?label=&color=blue)](https://pypi.org/project/tomlplus/) |
-| **Node** / Deno / Bun | `npm install tomlplus` (native)<br>`npm install tomlplus-wasm` (universal) | [![npm](https://img.shields.io/npm/v/tomlplus?label=tomlplus&color=blue)](https://www.npmjs.com/package/tomlplus) [![npm](https://img.shields.io/npm/v/tomlplus-wasm?label=wasm&color=blue)](https://www.npmjs.com/package/tomlplus-wasm) |
-| **Rust** | `cargo add tomlplus-syntax` | [![crates.io](https://img.shields.io/crates/v/tomlplus-syntax?label=&color=blue)](https://crates.io/crates/tomlplus-syntax) |
-| **Java** ≥17 | `io.github.carsonkopec:tomlplus-java` | [![Maven Central](https://img.shields.io/maven-central/v/io.github.carsonkopec/tomlplus-java?label=&color=blue)](https://central.sonatype.com/artifact/io.github.carsonkopec/tomlplus-java) |
-| **.NET** 8 | `dotnet add package Tomlplus` | [![NuGet](https://img.shields.io/nuget/v/Tomlplus?label=&color=blue)](https://www.nuget.org/packages/Tomlplus) |
-| **Go** | `go get github.com/CarsonKopec/tomlplus/bindings/tomlplus-go` | via git tag |
-| **Ruby** | `gem install tomlplus` | [![Gem](https://img.shields.io/gem/v/tomlplus?label=&color=blue)](https://rubygems.org/gems/tomlplus) |
-| **C / C++ / others** | Download `tomlplus-ffi-<ver>-<arch>.zip` from [Releases](https://github.com/CarsonKopec/tomlplus/releases) | per-OS tarball |
-
-Tools:
+Pick your runtime.
 
 ```bash
-cargo install tomlpr               # parse / validate / fmt / vars CLI
-cargo install tomlplus-lsp         # language server for editors
+pip install tomlplus                              # Python 3.8+
+npm install tomlplus                              # Node 18+ (native)
+npm install tomlplus-wasm                         # Browser / Deno / Bun / Workers
+cargo add tomlplus-syntax                         # Rust (embed the parser)
+gem install tomlplus                              # Ruby
+dotnet add package Tomlplus                       # .NET 8
+go get github.com/CarsonKopec/tomlplus/bindings/tomlplus-go
 ```
+
+Java (Gradle):
+
+```kotlin
+implementation("io.github.carsonkopec:tomlplus-java:2.0.0")
+```
+
+CLI and language server:
+
+```bash
+cargo install tomlpr            # parse / validate / fmt / vars
+cargo install tomlplus-lsp      # LSP server for editors
+```
+
+C / C++ / Swift / anything with a C FFI: download
+`tomlplus-ffi-<arch>.zip` from [Releases](https://github.com/CarsonKopec/tomlplus/releases).
+It's a `.dll`/`.so`/`.dylib` plus the `tomlplus.h` header.
 
 ## Editor support
 
-* **VSCodium / Cursor / Windsurf / Theia / Gitpod** — install **TOML+** from [Open VSX](https://open-vsx.org/extension/CarsonKopec/tomlplus). Ships syntax highlighting, semantic tokens, hover, completion, diagnostics, inlay hints, goto-def, formatting, and a colour picker for `#RRGGBB` strings.
-* **Microsoft VS Code** — manual install for now:
-  ```pwsh
-  # Download the .vsix from the latest GitHub Release, then:
-  code --install-extension tomlplus-2.0.0.vsix
-  ```
-  (Marketplace listing is on the roadmap pending Azure DevOps setup.)
-* **Neovim / Helix / Zed / Sublime / IntelliJ / Emacs** — point any LSP client at the `tomlplus-lsp` binary, language id `tomlplus`, file extension `.tomlp`. Neovim example:
+**VSCodium / Cursor / Windsurf / Theia / Gitpod** — install **TOML+** from
+[Open VSX](https://open-vsx.org/extension/CarsonKopec/tomlplus). You get
+syntax highlighting, semantic tokens, hover with resolved values,
+completion, live diagnostics, inlay hints showing what `$ENV.X` actually
+expands to, goto-def on `$vars`, formatting, and a colour picker on
+`#RRGGBB` strings.
 
-  ```lua
-  vim.lsp.start({
-      name = "tomlplus",
-      cmd  = { "tomlplus-lsp" },
-      root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1]),
-  })
-  ```
+**Microsoft VS Code** — for now, grab the `.vsix` from a release and
+`code --install-extension tomlplus-<ver>.vsix`. Marketplace listing
+pending.
 
-## Repository layout
+**Neovim / Helix / Zed / Sublime / IntelliJ / Emacs** — any LSP client
+works. Point it at `tomlplus-lsp` (the binary `cargo install` just put on
+your PATH), language id `tomlplus`, file extension `.tomlp`. Neovim:
 
-```
-.
-├── Cargo.toml                     # Cargo workspace
-├── release.py                     # build/test/package/publish dispatcher (Python + rich)
-├── PUBLISHING.md                  # per-target release commands
-├── CHANGELOG.md
-├── .github/workflows/             # CI matrix + tag-driven release pipeline
-├── crates/                        # Cargo crates (Rust-native bindings)
-│   ├── tomlplus-syntax/           # lexer + parser + validator + dumper (the language)
-│   ├── tomlplus-lsp/              # tower-lsp language server
-│   ├── tomlplus-cli/              # `tomlpr` command-line tool
-│   ├── tomlplus-ffi/              # C ABI cdylib + tomlplus.h header
-│   ├── tomlplus-python/           # PyO3 wheel (drop-in `pip install tomlplus`)
-│   ├── tomlplus-node/             # napi-rs Node module
-│   └── tomlplus-wasm/             # wasm-pack module (browser / Deno / Bun / Workers)
-├── bindings/                      # Non-Rust bindings (consume tomlplus-ffi)
-│   ├── tomlplus-go/               # cgo Go module
-│   ├── tomlplus-ruby/             # FFI Ruby gem
-│   ├── tomlplus-java/             # Gradle artefact, published io.github.carsonkopec:tomlplus-java
-│   └── tomlplus-dotnet/           # P/Invoke .NET class library
-├── editors/vscode/                # VS Code client extension (esbuild-bundled)
-├── tests/cross-binding/           # one fixture parsed by every binding, JSON-compared
-└── scripts/                       # one-off maintenance scripts (availability check, …)
+```lua
+vim.lsp.start({
+    name = "tomlplus",
+    cmd  = { "tomlplus-lsp" },
+    root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1]),
+})
 ```
 
-`tomlplus-syntax` owns the language — no I/O, no async, no LSP types. Every
-other crate consumes it. Adding a new language is mechanical: a new
-`crates/tomlplus-<lang>/` if the ABI talks to Rust directly (Python, Node,
-WASM), or a new `bindings/tomlplus-<lang>/` if it goes through the C FFI
-(Go, Ruby, Java, .NET, Swift, …).
+## How it stays consistent
+
+There's one Rust core (`crates/tomlplus-syntax`) and every binding talks to
+it. Python/Node/WASM use it directly via PyO3 / napi-rs / wasm-bindgen.
+Go/Ruby/Java/.NET go through a C ABI shim (`tomlplus-ffi`) so they can
+load the same `.dll`/`.so`/`.dylib` Rust produces.
+
+On every push, CI parses the same canonical `.tomlp` fixture with all
+eight bindings and JSON-compares the outputs. If a binding drifts even
+by one digit, the build fails. So when you read a `.tomlp` file in Go,
+it parses to the same tree it would in Python.
+
+## Layout
+
+```
+crates/                       Rust crates (Rust-direct bindings)
+  tomlplus-syntax/            the language: lexer + parser + validator + dumper
+  tomlplus-lsp/               tower-lsp language server
+  tomlplus-cli/               tomlpr command-line tool
+  tomlplus-ffi/               C ABI cdylib + tomlplus.h
+  tomlplus-python/            PyO3 wheel
+  tomlplus-node/              napi-rs native module
+  tomlplus-wasm/              wasm-pack module
+bindings/                     non-Rust bindings (consume tomlplus-ffi)
+  tomlplus-go/                cgo
+  tomlplus-ruby/              FFI gem
+  tomlplus-java/              Gradle, published io.github.carsonkopec:tomlplus-java
+  tomlplus-dotnet/            P/Invoke
+editors/vscode/               TextMate grammar + LSP client (esbuild-bundled)
+tests/cross-binding/          one fixture parsed by every binding, JSON-compared
+release.py                    build/test/package/publish dispatcher
+```
 
 ## Develop
 
+You need rustup. Everything else (Python venv, Gradle, MinGW for cgo on
+Windows) the dispatcher fetches the first time it needs it.
+
 ```pwsh
-# One-time:
-winget install Rustlang.Rustup     # or https://rustup.rs/
-
-# Then the dispatcher orchestrates everything:
-py -3 release.py build              # build everything
-py -3 release.py test               # run every test suite (incl. cross-binding)
-py -3 release.py test -t python     # one target
-py -3 release.py package -t all     # produce shippable artefacts under release/
+py -3 release.py test                 # everything, all platforms (~5 min)
+py -3 release.py test -t python       # one binding
+py -3 release.py package -t all       # build artefacts in release/
 py -3 release.py publish -t all --dry-run
-
-# Quick checks:
-cargo test --workspace              # Rust unit tests (fast)
-py -3 scripts/check-package-availability.py   # are our names still free?
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the dev workflow and
-[`PUBLISHING.md`](PUBLISHING.md) for per-registry publish commands.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a binding or change
+the language, and [PUBLISHING.md](PUBLISHING.md) for the per-registry
+token setup.
 
 ## Status
 
-Pre-2.0.0 release. The code is feature-complete and CI is green across
-Ubuntu / Windows / macOS for every binding; first registry pushes (PyPI,
-npm, crates.io, NuGet, RubyGems, Maven Central, Open VSX) are pending
-manual one-time account setup. See [CHANGELOG.md](CHANGELOG.md) for what's
-in 2.0.0.
+`2.0.0-rc.x` series. CI is green across Linux / Windows / macOS-arm64 for
+every binding. The macOS Intel runner got retired by GitHub, so Intel-Mac
+users install from source for now. Registry pushes (PyPI, npm, crates.io,
+NuGet, RubyGems, Maven Central, Open VSX) wait on one-time account setup;
+see [PUBLISHING.md](PUBLISHING.md).
 
 ## License
 
-[MIT](LICENSE) © Carson Kopec.
+[MIT](LICENSE). Use it however.
