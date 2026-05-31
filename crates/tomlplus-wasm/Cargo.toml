@@ -1,11 +1,14 @@
 [package]
 name        = "tomlplus-wasm"
 description = "WebAssembly bindings for the TOML+ language core (browser / Node / Deno / Bun / Workers)"
-version     = { workspace = true }
-edition     = { workspace = true }
-license     = { workspace = true }
-authors     = { workspace = true }
-repository  = { workspace = true }
+# Fields below are inlined (not `{ workspace = true }`) because wasm-pack's
+# bundled manifest parser doesn't understand workspace inheritance on some
+# older arm64-macOS builds shipped by jetli/wasm-pack-action.
+version     = "2.0.0"
+edition     = "2021"
+license     = "MIT"
+authors     = ["Carson Kopec <kopeccarson@gmail.com>"]
+repository  = "https://github.com/CarsonKopec/tomlplus"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
