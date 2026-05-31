@@ -408,11 +408,30 @@ def build_go() -> None:
     run(["go", "build", "./..."], cwd=GO_DIR)
     ok("Compiled.")
 
+def ensure_ruby_ffi() -> None:
+    """Make the `ffi` gem available to the Ruby on PATH.
+
+    `gem install` in a separate CI step often lands in a different gem
+    home than `ruby/setup-ruby`'s active one, so the gem is "installed"
+    but `require 'ffi'` still fails. Doing the install ourselves with
+    the same `ruby`/`gem` binaries we'll use for the test sidesteps that.
+    """
+    require_tool("ruby")
+    require_tool("gem")
+    probe = subprocess.run(
+        ["ruby", "-e", "require 'ffi'"],
+        capture_output=True, text=True,
+    )
+    if probe.returncode == 0:
+        return
+    info("Installing `ffi` gem (not available to the ruby on PATH)")
+    run(["gem", "install", "ffi", "--no-document", "--silent"])
+
 def build_ruby() -> None:
     build_ffi_lib()
     add_ffi_to_loader_path()
     step("Ruby (sanity-load gem source)")
-    require_tool("ruby")
+    ensure_ruby_ffi()
     # Point Ruby's FFI at the absolute library path. Windows' LoadLibrary
     # ignores PATH; Linux/macOS need the platform-correct lib*.so/dylib name.
     if IS_WINDOWS:
