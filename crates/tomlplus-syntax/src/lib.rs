@@ -33,20 +33,43 @@ pub use value::Value;
 /// Builtin variable names that are always available in TOML+ source.
 /// The LSP uses this for completion.
 pub const BUILTIN_VARS: &[&str] = &[
-    "NOW", "TODAY", "TRUE", "FALSE", "NULL",
-    "PID", "HOSTNAME", "PLATFORM", "CWD",
+    "NOW", "TODAY", "TRUE", "FALSE", "NULL", "PID", "HOSTNAME", "PLATFORM", "CWD",
 ];
 
 /// Annotation names known to the validator. Used by the LSP for completion.
 pub const KNOWN_ANNOTATIONS: &[&str] = &[
-    "required", "type", "min", "max", "minlen", "maxlen", "pattern",
-    "enum", "positive", "nonzero", "nonempty", "deprecated",
-    "tag", "internal", "readonly", "experimental",
+    "required",
+    "type",
+    "min",
+    "max",
+    "minlen",
+    "maxlen",
+    "pattern",
+    "enum",
+    "positive",
+    "nonzero",
+    "nonempty",
+    "deprecated",
+    "tag",
+    "internal",
+    "readonly",
+    "experimental",
 ];
 
 /// Annotation type names recognised by `@type:` for completion.
 pub const KNOWN_TYPES: &[&str] = &[
-    "string", "int", "float", "bool", "dict", "list",
-    "list[string]", "list[int]", "list[float]", "list[bool]",
-    "url", "email", "path", "duration",
+    "string",
+    "int",
+    "float",
+    "bool",
+    "dict",
+    "list",
+    "list[string]",
+    "list[int]",
+    "list[float]",
+    "list[bool]",
+    "url",
+    "email",
+    "path",
+    "duration",
 ];

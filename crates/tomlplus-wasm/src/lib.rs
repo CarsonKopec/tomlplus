@@ -14,10 +14,7 @@ use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 
 use tomlplus_syntax::{
-    annotation::AnnotationArg,
-    dumper, parser, validator,
-    value::Value,
-    LineIndex, Severity,
+    annotation::AnnotationArg, dumper, parser, validator, value::Value, LineIndex, Severity,
 };
 
 // ── Panic hook (better browser-console errors) ───────────────────────────────
@@ -157,8 +154,7 @@ impl TomlplusDocument {
                 }
             }
         }
-        to_js(&serde_json::Value::Object(out))
-            .map_err(|e| JsError::new(&e.to_string()))
+        to_js(&serde_json::Value::Object(out)).map_err(|e| JsError::new(&e.to_string()))
     }
 
     /// All key paths annotated with `@required`.
@@ -243,8 +239,7 @@ impl TomlplusDocument {
                 .collect();
             out.insert(k.clone(), serde_json::Value::Array(xs));
         }
-        to_js(&serde_json::Value::Object(out))
-            .map_err(|e| JsError::new(&e.to_string()))
+        to_js(&serde_json::Value::Object(out)).map_err(|e| JsError::new(&e.to_string()))
     }
 
     /// Top-level section/key names.
@@ -256,10 +251,7 @@ impl TomlplusDocument {
 
 // ── Conversion helpers ───────────────────────────────────────────────────────
 
-fn resolve_dotted<'a>(
-    config: &'a BTreeMap<String, Value>,
-    dotted: &str,
-) -> Option<&'a Value> {
+fn resolve_dotted<'a>(config: &'a BTreeMap<String, Value>, dotted: &str) -> Option<&'a Value> {
     let mut parts = dotted.split('.');
     let first = parts.next()?;
     let mut node: &Value = config.get(first)?;
@@ -275,14 +267,16 @@ fn resolve_dotted<'a>(
 fn value_to_json(v: &Value) -> serde_json::Value {
     use serde_json::{Number, Value as J};
     match v {
-        Value::Null       => J::Null,
-        Value::Bool(b)    => J::Bool(*b),
+        Value::Null => J::Null,
+        Value::Bool(b) => J::Bool(*b),
         Value::Integer(n) => J::Number((*n).into()),
-        Value::Float(f)   => Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
-        Value::String(s)  => J::String(s.clone()),
-        Value::Array(xs)  => J::Array(xs.iter().map(value_to_json).collect()),
-        Value::Dict(d)    => J::Object(
-            d.iter().map(|(k, v)| (k.clone(), value_to_json(v))).collect(),
+        Value::Float(f) => Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
+        Value::String(s) => J::String(s.clone()),
+        Value::Array(xs) => J::Array(xs.iter().map(value_to_json).collect()),
+        Value::Dict(d) => J::Object(
+            d.iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect(),
         ),
     }
 }
@@ -290,11 +284,11 @@ fn value_to_json(v: &Value) -> serde_json::Value {
 fn arg_to_json(a: &AnnotationArg) -> serde_json::Value {
     use serde_json::{Number, Value as J};
     match a {
-        AnnotationArg::None      => J::Null,
+        AnnotationArg::None => J::Null,
         AnnotationArg::String(s) => J::String(s.clone()),
-        AnnotationArg::Int(n)    => J::Number((*n).into()),
-        AnnotationArg::Float(f)  => Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
-        AnnotationArg::List(xs)  => J::Array(xs.iter().map(|s| J::String(s.clone())).collect()),
+        AnnotationArg::Int(n) => J::Number((*n).into()),
+        AnnotationArg::Float(f) => Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
+        AnnotationArg::List(xs) => J::Array(xs.iter().map(|s| J::String(s.clone())).collect()),
     }
 }
 
@@ -316,9 +310,9 @@ fn to_js_via_json<T: serde::Serialize + ?Sized>(value: &T) -> Result<JsValue, Js
 
 fn severity_name(s: Severity) -> &'static str {
     match s {
-        Severity::Error   => "error",
+        Severity::Error => "error",
         Severity::Warning => "warning",
-        Severity::Info    => "info",
-        Severity::Hint    => "hint",
+        Severity::Info => "info",
+        Severity::Hint => "hint",
     }
 }

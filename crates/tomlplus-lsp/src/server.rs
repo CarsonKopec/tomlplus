@@ -13,8 +13,8 @@ use tomlplus_syntax::{
     dumper, parser, validator,
     value::Value as TpValue,
     value_parser::VarRefKind,
-    Diagnostic as TpDiagnostic, LineIndex, Severity, Span,
-    BUILTIN_VARS, KNOWN_ANNOTATIONS, KNOWN_TYPES,
+    Diagnostic as TpDiagnostic, LineIndex, Severity, Span, BUILTIN_VARS, KNOWN_ANNOTATIONS,
+    KNOWN_TYPES,
 };
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -23,25 +23,25 @@ use tower_lsp::{Client, LanguageServer};
 // ── Semantic-token legend ────────────────────────────────────────────────────
 // These indices MUST match the order in the legend we declare in `initialize`.
 mod tok {
-    pub const NAMESPACE: u32   = 0;  // [section]
-    pub const PROPERTY: u32    = 1;  // key
-    pub const DECORATOR: u32   = 2;  // @annotation name
-    pub const TYPE: u32        = 3;  // @type: <name>
-    pub const ENUM_MEMBER: u32 = 4;  // @enum: [a, b, c]
-    pub const VARIABLE: u32    = 5;  // $userVar
-    pub const _CONSTANT: u32   = 6;  // $BUILTIN
-    pub const _PARAMETER: u32  = 7;  // $ENV.X
-    pub const _NUMBER: u32     = 8;  // numeric annotation arg
-    pub const _STRING: u32     = 9;  // string annotation arg
-    pub const _REGEXP: u32     = 10; // @pattern arg
+    pub const NAMESPACE: u32 = 0; // [section]
+    pub const PROPERTY: u32 = 1; // key
+    pub const DECORATOR: u32 = 2; // @annotation name
+    pub const TYPE: u32 = 3; // @type: <name>
+    pub const ENUM_MEMBER: u32 = 4; // @enum: [a, b, c]
+    pub const VARIABLE: u32 = 5; // $userVar
+    pub const _CONSTANT: u32 = 6; // $BUILTIN
+    pub const _PARAMETER: u32 = 7; // $ENV.X
+    pub const _NUMBER: u32 = 8; // numeric annotation arg
+    pub const _STRING: u32 = 9; // string annotation arg
+    pub const _REGEXP: u32 = 10; // @pattern arg
 }
 
 // Modifier bits — match the order in the legend.
 mod modi {
     pub const DECLARATION: u32 = 1 << 0;
-    pub const READONLY: u32    = 1 << 1;
-    pub const STATIC: u32      = 1 << 2;
-    pub const DEPRECATED: u32  = 1 << 3;
+    pub const READONLY: u32 = 1 << 1;
+    pub const STATIC: u32 = 1 << 2;
+    pub const DEPRECATED: u32 = 1 << 3;
     pub const DEFAULT_LIB: u32 = 1 << 4;
 }
 
@@ -60,7 +60,10 @@ struct DocState {
 
 impl Backend {
     pub fn new(client: Client) -> Self {
-        Self { client, docs: Arc::new(DashMap::new()) }
+        Self {
+            client,
+            docs: Arc::new(DashMap::new()),
+        }
     }
 
     fn store_and_diagnose(&self, uri: Url, text: String) -> Vec<Diagnostic> {
@@ -75,7 +78,14 @@ impl Backend {
             .map(|d| to_lsp_diagnostic(d, &line_index))
             .collect();
 
-        self.docs.insert(uri, DocState { rope, line_index, parsed });
+        self.docs.insert(
+            uri,
+            DocState {
+                rope,
+                line_index,
+                parsed,
+            },
+        );
         lsp_diags
     }
 
@@ -83,7 +93,7 @@ impl Backend {
     where
         F: FnOnce(&DocState) -> R,
     {
-        self.docs.get(uri).map(|d| f(&*d))
+        self.docs.get(uri).map(|d| f(&d))
     }
 }
 
@@ -100,9 +110,7 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 completion_provider: Some(CompletionOptions {
-                    trigger_characters: Some(vec![
-                        "@".into(), "$".into(), ".".into(), ":".into(),
-                    ]),
+                    trigger_characters: Some(vec!["@".into(), "$".into(), ".".into(), ":".into()]),
                     resolve_provider: Some(false),
                     ..Default::default()
                 }),
@@ -117,17 +125,17 @@ impl LanguageServer for Backend {
                         SemanticTokensOptions {
                             legend: SemanticTokensLegend {
                                 token_types: vec![
-                                    SemanticTokenType::NAMESPACE,    // 0
-                                    SemanticTokenType::PROPERTY,     // 1
-                                    SemanticTokenType::DECORATOR,    // 2
-                                    SemanticTokenType::TYPE,         // 3
-                                    SemanticTokenType::ENUM_MEMBER,  // 4
-                                    SemanticTokenType::VARIABLE,     // 5
-                                    SemanticTokenType::new("constant"),   // 6
-                                    SemanticTokenType::PARAMETER,    // 7
-                                    SemanticTokenType::NUMBER,       // 8
-                                    SemanticTokenType::STRING,       // 9
-                                    SemanticTokenType::REGEXP,       // 10
+                                    SemanticTokenType::NAMESPACE,       // 0
+                                    SemanticTokenType::PROPERTY,        // 1
+                                    SemanticTokenType::DECORATOR,       // 2
+                                    SemanticTokenType::TYPE,            // 3
+                                    SemanticTokenType::ENUM_MEMBER,     // 4
+                                    SemanticTokenType::VARIABLE,        // 5
+                                    SemanticTokenType::new("constant"), // 6
+                                    SemanticTokenType::PARAMETER,       // 7
+                                    SemanticTokenType::NUMBER,          // 8
+                                    SemanticTokenType::STRING,          // 9
+                                    SemanticTokenType::REGEXP,          // 10
                                 ],
                                 token_modifiers: vec![
                                     SemanticTokenModifier::DECLARATION,
@@ -213,15 +221,15 @@ impl LanguageServer for Backend {
             .flatten())
     }
 
-    async fn formatting(
-        &self,
-        params: DocumentFormattingParams,
-    ) -> Result<Option<Vec<TextEdit>>> {
+    async fn formatting(&self, params: DocumentFormattingParams) -> Result<Option<Vec<TextEdit>>> {
         Ok(self.with_doc(&params.text_document.uri, |s| {
             let formatted = dumper::dumps(&s.parsed);
             let end_line = s.rope.len_lines() as u32;
             let range = Range::new(Position::new(0, 0), Position::new(end_line, 0));
-            vec![TextEdit { range, new_text: formatted }]
+            vec![TextEdit {
+                range,
+                new_text: formatted,
+            }]
         }))
     }
 
@@ -229,24 +237,19 @@ impl LanguageServer for Backend {
         &self,
         params: SemanticTokensParams,
     ) -> Result<Option<SemanticTokensResult>> {
-        Ok(self
-            .with_doc(&params.text_document.uri, |s| {
-                SemanticTokensResult::Tokens(SemanticTokens {
-                    result_id: None,
-                    data: semantic_tokens(s),
-                })
-            }))
+        Ok(self.with_doc(&params.text_document.uri, |s| {
+            SemanticTokensResult::Tokens(SemanticTokens {
+                result_id: None,
+                data: semantic_tokens(s),
+            })
+        }))
     }
 
     async fn inlay_hint(&self, params: InlayHintParams) -> Result<Option<Vec<InlayHint>>> {
-        Ok(self
-            .with_doc(&params.text_document.uri, |s| inlay_hints(s, params.range)))
+        Ok(self.with_doc(&params.text_document.uri, |s| inlay_hints(s, params.range)))
     }
 
-    async fn document_color(
-        &self,
-        params: DocumentColorParams,
-    ) -> Result<Vec<ColorInformation>> {
+    async fn document_color(&self, params: DocumentColorParams) -> Result<Vec<ColorInformation>> {
         Ok(self
             .with_doc(&params.text_document.uri, document_colors)
             .unwrap_or_default())
@@ -270,10 +273,10 @@ fn to_lsp_diagnostic(d: &TpDiagnostic, idx: &LineIndex) -> Diagnostic {
     Diagnostic {
         range: span_to_range(d.span, idx),
         severity: Some(match d.severity {
-            Severity::Error   => DiagnosticSeverity::ERROR,
+            Severity::Error => DiagnosticSeverity::ERROR,
             Severity::Warning => DiagnosticSeverity::WARNING,
-            Severity::Info    => DiagnosticSeverity::INFORMATION,
-            Severity::Hint    => DiagnosticSeverity::HINT,
+            Severity::Info => DiagnosticSeverity::INFORMATION,
+            Severity::Hint => DiagnosticSeverity::HINT,
         }),
         source: Some("tomlplus".to_string()),
         message: d.message.clone(),
@@ -297,7 +300,12 @@ fn hover_at(state: &DocState, pos: Position) -> Option<Hover> {
     let offset = pos_to_offset(pos, &state.line_index);
 
     // 1. Variable reference under cursor?
-    if let Some(vref) = state.parsed.var_refs.iter().find(|r| r.span.contains(offset)) {
+    if let Some(vref) = state
+        .parsed
+        .var_refs
+        .iter()
+        .find(|r| r.span.contains(offset))
+    {
         return Some(hover_for_var(state, vref));
     }
 
@@ -315,10 +323,17 @@ fn hover_for_var(state: &DocState, vref: &tomlplus_syntax::value_parser::VarRef)
     let mut md = String::new();
     match vref.kind {
         VarRefKind::User => {
-            md.push_str(&format!("`${}` &nbsp;·&nbsp; **user variable**\n", vref.name));
+            md.push_str(&format!(
+                "`${}` &nbsp;·&nbsp; **user variable**\n",
+                vref.name
+            ));
             if let Some(v) = state.parsed.vars.get(&vref.name) {
                 md.push_str(&format!("\n*type:* `{}`\n", v.type_name()));
-                md.push_str(&format!("\n```tomlplus\n{} = {}\n```", vref.name, format_value_display(v)));
+                md.push_str(&format!(
+                    "\n```tomlplus\n{} = {}\n```",
+                    vref.name,
+                    format_value_display(v)
+                ));
             }
         }
         VarRefKind::Builtin => {
@@ -326,9 +341,12 @@ fn hover_for_var(state: &DocState, vref: &tomlplus_syntax::value_parser::VarRef)
             md.push_str(builtin_doc(&vref.name));
         }
         VarRefKind::Env => {
-            md.push_str(&format!("`$ENV.{}` &nbsp;·&nbsp; **environment variable**\n", vref.name));
+            md.push_str(&format!(
+                "`$ENV.{}` &nbsp;·&nbsp; **environment variable**\n",
+                vref.name
+            ));
             match std::env::var(&vref.name) {
-                Ok(v)  => md.push_str(&format!("\n*currently set:* `{}`", v)),
+                Ok(v) => md.push_str(&format!("\n*currently set:* `{}`", v)),
                 Err(_) => md.push_str("\n*currently:* `<unset>` — use `??` for a fallback"),
             }
         }
@@ -347,13 +365,16 @@ fn hover_for_key(state: &DocState, key: &str, span: Span) -> Hover {
     let value = resolve_value(&state.parsed.config, key);
     if let Some(v) = value {
         md.push_str(&format!(" &nbsp;·&nbsp; *{}*\n", v.type_name()));
-        md.push_str(&format!("\n```tomlplus\n= {}\n```\n", format_value_display(v)));
+        md.push_str(&format!(
+            "\n```tomlplus\n= {}\n```\n",
+            format_value_display(v)
+        ));
     } else {
         md.push('\n');
     }
 
     if let Some(anns) = state.parsed.meta.get(key) {
-        let required   = anns.iter().any(|a| a.name == "required");
+        let required = anns.iter().any(|a| a.name == "required");
         let deprecated = anns.iter().find(|a| a.name == "deprecated");
         let mut chips: Vec<String> = Vec::new();
         if required {
@@ -424,12 +445,12 @@ fn resolve_value<'a>(
 
 fn format_value_display(v: &TpValue) -> String {
     match v {
-        TpValue::String(s)  => format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")),
+        TpValue::String(s) => format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\"")),
         TpValue::Integer(n) => n.to_string(),
-        TpValue::Float(f)   => f.to_string(),
-        TpValue::Bool(b)    => b.to_string(),
-        TpValue::Null       => "null".into(),
-        TpValue::Array(xs)  => {
+        TpValue::Float(f) => f.to_string(),
+        TpValue::Bool(b) => b.to_string(),
+        TpValue::Null => "null".into(),
+        TpValue::Array(xs) => {
             let inner: Vec<String> = xs.iter().take(6).map(format_value_display).collect();
             let suffix = if xs.len() > 6 { ", …" } else { "" };
             format!("[{}{}]", inner.join(", "), suffix)
@@ -448,25 +469,25 @@ fn format_value_display(v: &TpValue) -> String {
 
 fn format_annotation_for_hover(a: &Annotation) -> String {
     match &a.arg {
-        AnnotationArg::None      => format!("@{}", a.name),
+        AnnotationArg::None => format!("@{}", a.name),
         AnnotationArg::String(s) => format!("@{}: {}", a.name, s),
-        AnnotationArg::Int(n)    => format!("@{}: {}", a.name, n),
-        AnnotationArg::Float(f)  => format!("@{}: {}", a.name, f),
-        AnnotationArg::List(xs)  => format!("@{}: [{}]", a.name, xs.join(", ")),
+        AnnotationArg::Int(n) => format!("@{}: {}", a.name, n),
+        AnnotationArg::Float(f) => format!("@{}: {}", a.name, f),
+        AnnotationArg::List(xs) => format!("@{}: [{}]", a.name, xs.join(", ")),
     }
 }
 
 fn builtin_doc(name: &str) -> &'static str {
     match name {
-        "NOW"      => "\nCurrent UTC timestamp at parse time (ISO 8601).",
-        "TODAY"    => "\nCurrent UTC date at parse time (YYYY-MM-DD).",
-        "TRUE"     => "\nBoolean `true`.",
-        "FALSE"    => "\nBoolean `false`.",
-        "NULL"     => "\nThe null value.",
-        "PID"      => "\nProcess ID of the parser.",
+        "NOW" => "\nCurrent UTC timestamp at parse time (ISO 8601).",
+        "TODAY" => "\nCurrent UTC date at parse time (YYYY-MM-DD).",
+        "TRUE" => "\nBoolean `true`.",
+        "FALSE" => "\nBoolean `false`.",
+        "NULL" => "\nThe null value.",
+        "PID" => "\nProcess ID of the parser.",
         "HOSTNAME" => "\nMachine hostname.",
         "PLATFORM" => "\nLowercased OS name (e.g. `windows`, `linux`).",
-        "CWD"      => "\nCurrent working directory of the parser.",
+        "CWD" => "\nCurrent working directory of the parser.",
         _ => "",
     }
 }
@@ -571,21 +592,21 @@ fn type_completions() -> Vec<CompletionItem> {
 
 fn type_doc(ty: &str) -> &'static str {
     match ty {
-        "string"       => "UTF-8 string.",
-        "int"          => "Signed 64-bit integer (dec/hex/oct/bin literals OK).",
-        "float"        => "IEEE-754 double (accepts integer literals too).",
-        "bool"         => "`true` or `false`.",
-        "dict"         => "Inline or block dictionary `#{ … }#`.",
-        "list"         => "Array `[…]`.",
+        "string" => "UTF-8 string.",
+        "int" => "Signed 64-bit integer (dec/hex/oct/bin literals OK).",
+        "float" => "IEEE-754 double (accepts integer literals too).",
+        "bool" => "`true` or `false`.",
+        "dict" => "Inline or block dictionary `#{ … }#`.",
+        "list" => "Array `[…]`.",
         "list[string]" => "Array whose every element is a string.",
-        "list[int]"    => "Array whose every element is an integer.",
-        "list[float]"  => "Array whose every element is numeric.",
-        "list[bool]"   => "Array of booleans.",
-        "url"          => "String beginning with `http://` or `https://`.",
-        "email"        => "String matching a relaxed email regex.",
-        "path"         => "String (filesystem path — not checked for existence).",
-        "duration"     => "Duration string like `30s`, `5m`, `2h`, `1d`.",
-        _              => "",
+        "list[int]" => "Array whose every element is an integer.",
+        "list[float]" => "Array whose every element is numeric.",
+        "list[bool]" => "Array of booleans.",
+        "url" => "String beginning with `http://` or `https://`.",
+        "email" => "String matching a relaxed email regex.",
+        "path" => "String (filesystem path — not checked for existence).",
+        "duration" => "Duration string like `30s`, `5m`, `2h`, `1d`.",
+        _ => "",
     }
 }
 
@@ -600,7 +621,11 @@ fn variable_completions(state: &DocState) -> Vec<CompletionItem> {
             detail: Some(format!("user variable · {}", value.type_name())),
             documentation: Some(Documentation::MarkupContent(MarkupContent {
                 kind: MarkupKind::Markdown,
-                value: format!("```tomlplus\n{} = {}\n```", name, format_value_display(value)),
+                value: format!(
+                    "```tomlplus\n{} = {}\n```",
+                    name,
+                    format_value_display(value)
+                ),
             })),
             ..Default::default()
         });
@@ -671,7 +696,11 @@ fn document_symbols(state: &DocState) -> Vec<DocumentSymbol> {
     ) -> Vec<DocumentSymbol> {
         let mut out = Vec::new();
         for (k, v) in d {
-            let fqk = if prefix.is_empty() { k.clone() } else { format!("{}.{}", prefix, k) };
+            let fqk = if prefix.is_empty() {
+                k.clone()
+            } else {
+                format!("{}.{}", prefix, k)
+            };
             let span = spans.get(&fqk).copied().unwrap_or(Span::DUMMY);
             let range = span_to_range(span, idx);
             let (kind, children) = match v {
@@ -679,11 +708,11 @@ fn document_symbols(state: &DocState) -> Vec<DocumentSymbol> {
                     SymbolKind::NAMESPACE,
                     Some(dict_to_symbols(inner, &fqk, spans, idx)),
                 ),
-                TpValue::Array(_)   => (SymbolKind::ARRAY, None),
-                TpValue::String(_)  => (SymbolKind::STRING, None),
+                TpValue::Array(_) => (SymbolKind::ARRAY, None),
+                TpValue::String(_) => (SymbolKind::STRING, None),
                 TpValue::Integer(_) | TpValue::Float(_) => (SymbolKind::NUMBER, None),
-                TpValue::Bool(_)    => (SymbolKind::BOOLEAN, None),
-                TpValue::Null       => (SymbolKind::NULL, None),
+                TpValue::Bool(_) => (SymbolKind::BOOLEAN, None),
+                TpValue::Null => (SymbolKind::NULL, None),
             };
             #[allow(deprecated)]
             out.push(DocumentSymbol {
@@ -699,12 +728,17 @@ fn document_symbols(state: &DocState) -> Vec<DocumentSymbol> {
         }
         out
     }
-    dict_to_symbols(&state.parsed.config, "", &state.parsed.key_spans, &state.line_index)
+    dict_to_symbols(
+        &state.parsed.config,
+        "",
+        &state.parsed.key_spans,
+        &state.line_index,
+    )
 }
 
 fn symbol_detail(v: &TpValue) -> String {
     match v {
-        TpValue::Dict(d)  => format!("dict · {} keys", d.len()),
+        TpValue::Dict(d) => format!("dict · {} keys", d.len()),
         TpValue::Array(a) => format!("list · {} items", a.len()),
         _ => v.type_name().to_string(),
     }
@@ -712,13 +746,14 @@ fn symbol_detail(v: &TpValue) -> String {
 
 // ── Goto definition ──────────────────────────────────────────────────────────
 
-fn definition_at(
-    state: &DocState,
-    uri: &Url,
-    pos: Position,
-) -> Option<GotoDefinitionResponse> {
+fn definition_at(state: &DocState, uri: &Url, pos: Position) -> Option<GotoDefinitionResponse> {
     let offset = pos_to_offset(pos, &state.line_index);
-    if let Some(vref) = state.parsed.var_refs.iter().find(|r| r.span.contains(offset)) {
+    if let Some(vref) = state
+        .parsed
+        .var_refs
+        .iter()
+        .find(|r| r.span.contains(offset))
+    {
         if matches!(vref.kind, VarRefKind::User) {
             if let Some(def_span) = state.parsed.var_def_spans.get(&vref.name) {
                 let range = span_to_range(*def_span, &state.line_index);
@@ -753,7 +788,11 @@ fn semantic_tokens(state: &DocState) -> Vec<SemanticToken> {
         let len = span.len() as u32;
         let value = resolve_value(&state.parsed.config, key);
         let is_section = matches!(value, Some(TpValue::Dict(_)));
-        let ty = if is_section { tok::NAMESPACE } else { tok::PROPERTY };
+        let ty = if is_section {
+            tok::NAMESPACE
+        } else {
+            tok::PROPERTY
+        };
 
         let mut modi_bits = modi::DECLARATION;
         if let Some(anns) = state.parsed.meta.get(key) {
@@ -765,7 +804,13 @@ fn semantic_tokens(state: &DocState) -> Vec<SemanticToken> {
             }
         }
 
-        toks.push(AbsToken { line, col, len, ty, modi: modi_bits });
+        toks.push(AbsToken {
+            line,
+            col,
+            len,
+            ty,
+            modi: modi_bits,
+        });
     }
 
     // Variable references
@@ -773,11 +818,20 @@ fn semantic_tokens(state: &DocState) -> Vec<SemanticToken> {
         let (line, col) = idx.position(vref.span.start);
         let len = vref.span.len() as u32;
         let (ty, modi_bits) = match vref.kind {
-            VarRefKind::User    => (tok::VARIABLE, 0u32),
-            VarRefKind::Builtin => (tok::_CONSTANT, modi::READONLY | modi::STATIC | modi::DEFAULT_LIB),
-            VarRefKind::Env     => (tok::_PARAMETER, modi::READONLY),
+            VarRefKind::User => (tok::VARIABLE, 0u32),
+            VarRefKind::Builtin => (
+                tok::_CONSTANT,
+                modi::READONLY | modi::STATIC | modi::DEFAULT_LIB,
+            ),
+            VarRefKind::Env => (tok::_PARAMETER, modi::READONLY),
         };
-        toks.push(AbsToken { line, col, len, ty, modi: modi_bits });
+        toks.push(AbsToken {
+            line,
+            col,
+            len,
+            ty,
+            modi: modi_bits,
+        });
     }
 
     // Annotations — emit per-annotation @name + arg sub-tokens.
@@ -848,14 +902,18 @@ fn semantic_tokens(state: &DocState) -> Vec<SemanticToken> {
 }
 
 fn encode_delta(toks: &mut [AbsToken]) -> Vec<SemanticToken> {
-    toks.sort_by(|a, b| (a.line, a.col).cmp(&(b.line, b.col)));
+    toks.sort_by_key(|t| (t.line, t.col));
 
     let mut out = Vec::with_capacity(toks.len());
     let mut prev_line = 0u32;
     let mut prev_col = 0u32;
     for t in toks {
-        let delta_line  = t.line - prev_line;
-        let delta_start = if delta_line == 0 { t.col - prev_col } else { t.col };
+        let delta_line = t.line - prev_line;
+        let delta_start = if delta_line == 0 {
+            t.col - prev_col
+        } else {
+            t.col
+        };
         out.push(SemanticToken {
             delta_line,
             delta_start,
@@ -864,7 +922,7 @@ fn encode_delta(toks: &mut [AbsToken]) -> Vec<SemanticToken> {
             token_modifiers_bitset: t.modi,
         });
         prev_line = t.line;
-        prev_col  = t.col;
+        prev_col = t.col;
     }
     out
 }
@@ -984,7 +1042,11 @@ fn document_colors(state: &DocState) -> Vec<ColorInformation> {
             }
             TpValue::Dict(d) => {
                 for (k, vv) in d {
-                    let next = if prefix.is_empty() { k.clone() } else { format!("{}.{}", prefix, k) };
+                    let next = if prefix.is_empty() {
+                        k.clone()
+                    } else {
+                        format!("{}.{}", prefix, k)
+                    };
                     walk(vv, &next, value_spans, idx, out);
                 }
             }
@@ -1032,9 +1094,9 @@ fn parse_color(s: &str) -> Option<Color> {
 }
 
 fn format_color_hex(c: &Color) -> String {
-    let r = (c.red   * 255.0).round() as u8;
+    let r = (c.red * 255.0).round() as u8;
     let g = (c.green * 255.0).round() as u8;
-    let b = (c.blue  * 255.0).round() as u8;
+    let b = (c.blue * 255.0).round() as u8;
     let a = (c.alpha * 255.0).round() as u8;
     if a == 255 {
         format!("\"#{:02X}{:02X}{:02X}\"", r, g, b)

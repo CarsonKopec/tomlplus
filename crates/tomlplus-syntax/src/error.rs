@@ -37,11 +37,21 @@ pub enum DiagnosticCode {
 
 impl Diagnostic {
     pub fn error(message: impl Into<String>, span: Span, code: DiagnosticCode) -> Self {
-        Self { message: message.into(), span, severity: Severity::Error, code }
+        Self {
+            message: message.into(),
+            span,
+            severity: Severity::Error,
+            code,
+        }
     }
 
     pub fn warning(message: impl Into<String>, span: Span, code: DiagnosticCode) -> Self {
-        Self { message: message.into(), span, severity: Severity::Warning, code }
+        Self {
+            message: message.into(),
+            span,
+            severity: Severity::Warning,
+            code,
+        }
     }
 }
 

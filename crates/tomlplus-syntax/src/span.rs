@@ -17,7 +17,10 @@ impl Span {
     }
 
     pub fn point(offset: usize) -> Self {
-        Self { start: offset, end: offset }
+        Self {
+            start: offset,
+            end: offset,
+        }
     }
 
     pub fn merge(self, other: Span) -> Span {
@@ -63,7 +66,10 @@ impl LineIndex {
                 line_starts.push(i + 1);
             }
         }
-        Self { line_starts, len: text.len() }
+        Self {
+            line_starts,
+            len: text.len(),
+        }
     }
 
     pub fn line_count(&self) -> usize {

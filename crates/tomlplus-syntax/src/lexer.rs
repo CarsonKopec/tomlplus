@@ -197,7 +197,11 @@ fn physical_lines(source: &str) -> Vec<(u32, usize, &str)> {
     while i < bytes.len() {
         if bytes[i] == b'\n' {
             // Strip a trailing \r if present (CRLF tolerance)
-            let end = if i > start && bytes[i - 1] == b'\r' { i - 1 } else { i };
+            let end = if i > start && bytes[i - 1] == b'\r' {
+                i - 1
+            } else {
+                i
+            };
             out.push((lineno, start, &source[start..end]));
             start = i + 1;
             lineno += 1;

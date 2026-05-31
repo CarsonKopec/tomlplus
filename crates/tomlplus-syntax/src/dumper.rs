@@ -73,26 +73,32 @@ fn emit_annotations(out: &mut String, anns: &[Annotation], indent: &str) {
 
 fn format_annotation(a: &Annotation) -> String {
     match &a.arg {
-        AnnotationArg::None       => format!("@{}", a.name),
-        AnnotationArg::String(s)  => format!("@{}: {}", a.name, s),
-        AnnotationArg::Int(n)     => format!("@{}: {}", a.name, n),
-        AnnotationArg::Float(f)   => format!("@{}: {}", a.name, f),
-        AnnotationArg::List(xs)   => format!("@{}: [{}]", a.name, xs.join(", ")),
+        AnnotationArg::None => format!("@{}", a.name),
+        AnnotationArg::String(s) => format!("@{}: {}", a.name, s),
+        AnnotationArg::Int(n) => format!("@{}: {}", a.name, n),
+        AnnotationArg::Float(f) => format!("@{}: {}", a.name, f),
+        AnnotationArg::List(xs) => format!("@{}: [{}]", a.name, xs.join(", ")),
     }
 }
 
 fn format_value(v: &Value, _depth: usize) -> String {
     match v {
-        Value::Null       => "null".to_string(),
-        Value::Bool(b)    => if *b { "true".into() } else { "false".into() },
+        Value::Null => "null".to_string(),
+        Value::Bool(b) => {
+            if *b {
+                "true".into()
+            } else {
+                "false".into()
+            }
+        }
         Value::Integer(n) => n.to_string(),
-        Value::Float(f)   => format_float(*f),
-        Value::String(s)  => quote(s),
-        Value::Array(xs)  => {
+        Value::Float(f) => format_float(*f),
+        Value::String(s) => quote(s),
+        Value::Array(xs) => {
             let inner: Vec<String> = xs.iter().map(|v| format_value(v, 0)).collect();
             format!("[{}]", inner.join(", "))
         }
-        Value::Dict(d)    => {
+        Value::Dict(d) => {
             let inner: Vec<String> = d
                 .iter()
                 .map(|(k, v)| format!("{} = {}", k, format_value(v, 0)))
@@ -108,11 +114,11 @@ fn quote(s: &str) -> String {
     for c in s.chars() {
         match c {
             '\\' => out.push_str("\\\\"),
-            '"'  => out.push_str("\\\""),
+            '"' => out.push_str("\\\""),
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
             '\r' => out.push_str("\\r"),
-            _    => out.push(c),
+            _ => out.push(c),
         }
     }
     out.push('"');

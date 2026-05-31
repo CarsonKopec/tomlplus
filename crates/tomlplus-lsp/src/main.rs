@@ -16,7 +16,11 @@ fn log_path() -> PathBuf {
 }
 
 fn log_line(s: &str) {
-    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(log_path()) {
+    if let Ok(mut f) = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path())
+    {
         let _ = writeln!(f, "{}", s);
     }
 }
@@ -39,7 +43,10 @@ fn main() {
         std::env::args().collect::<Vec<_>>(),
     ));
 
-    let runtime = match tokio::runtime::Builder::new_multi_thread().enable_all().build() {
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
         Ok(r) => r,
         Err(e) => {
             log_line(&format!("FATAL: tokio runtime build failed: {}", e));
@@ -48,7 +55,7 @@ fn main() {
     };
 
     runtime.block_on(async {
-        let stdin  = tokio::io::stdin();
+        let stdin = tokio::io::stdin();
         let stdout = tokio::io::stdout();
         let (service, socket) = LspService::new(server::Backend::new);
         log_line("server: entering serve loop");

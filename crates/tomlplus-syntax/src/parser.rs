@@ -52,11 +52,7 @@ pub fn parse_with_env(source: &str, env: &dyn Fn(&str) -> Option<String>) -> Doc
     doc
 }
 
-fn pass1_vars(
-    tokens: &[LineToken],
-    doc: &mut Document,
-    env: &dyn Fn(&str) -> Option<String>,
-) {
+fn pass1_vars(tokens: &[LineToken], doc: &mut Document, env: &dyn Fn(&str) -> Option<String>) {
     let mut in_vars = false;
 
     for tok in tokens {
@@ -95,11 +91,7 @@ fn pass1_vars(
     }
 }
 
-fn pass2_main(
-    tokens: &[LineToken],
-    doc: &mut Document,
-    env: &dyn Fn(&str) -> Option<String>,
-) {
+fn pass2_main(tokens: &[LineToken], doc: &mut Document, env: &dyn Fn(&str) -> Option<String>) {
     let mut in_vars = false;
     let mut current_section: Vec<String> = Vec::new();
     let mut pending: Vec<Annotation> = Vec::new();
@@ -114,8 +106,15 @@ fn pass2_main(
     for tok in tokens {
         if in_block {
             handle_block(
-                tok, doc, env, &current_section, &block_key, &block_key_span,
-                &mut block_data, &mut block_pending, &mut block_ann_snapshot,
+                tok,
+                doc,
+                env,
+                &current_section,
+                &block_key,
+                &block_key_span,
+                &mut block_data,
+                &mut block_pending,
+                &mut block_ann_snapshot,
                 &mut in_block,
             );
             continue;
@@ -136,13 +135,14 @@ fn pass2_main(
         }
 
         match tok.kind {
-            LineKind::Annotation => match parse_annotation(
-                &tok.annotation_text,
-                annotation_span(tok),
-            ) {
-                Ok(a) => pending.push(a),
-                Err(e) => doc.diagnostics.push(e.into_diagnostic(DiagnosticCode::BadAnnotation)),
-            },
+            LineKind::Annotation => {
+                match parse_annotation(&tok.annotation_text, annotation_span(tok)) {
+                    Ok(a) => pending.push(a),
+                    Err(e) => doc
+                        .diagnostics
+                        .push(e.into_diagnostic(DiagnosticCode::BadAnnotation)),
+                }
+            }
             LineKind::Section => {
                 let path = split_section_path(&tok.section);
                 if path.is_empty() || path.iter().any(|p| p.is_empty()) {
@@ -158,8 +158,7 @@ fn pass2_main(
                     let key = path.join(".");
                     doc.meta.insert(key, std::mem::take(&mut pending));
                 }
-                doc.key_spans
-                    .insert(path.join("."), tok.section_span);
+                doc.key_spans.insert(path.join("."), tok.section_span);
                 current_section = path;
             }
             LineKind::BlockOpen => {
@@ -178,8 +177,12 @@ fn pass2_main(
                 match result {
                     Ok(v) => {
                         store(
-                            doc, &current_section, &tok.key, tok.key_span,
-                            tok.value_span, v,
+                            doc,
+                            &current_section,
+                            &tok.key,
+                            tok.key_span,
+                            tok.value_span,
+                            v,
                             std::mem::take(&mut pending),
                         );
                         doc.var_refs.extend(refs);
@@ -223,13 +226,14 @@ fn handle_block(
             block_pending.clear();
             *in_block = false;
         }
-        LineKind::Annotation => match parse_annotation(
-            &tok.annotation_text,
-            annotation_span(tok),
-        ) {
-            Ok(a) => block_pending.push(a),
-            Err(e) => doc.diagnostics.push(e.into_diagnostic(DiagnosticCode::BadAnnotation)),
-        },
+        LineKind::Annotation => {
+            match parse_annotation(&tok.annotation_text, annotation_span(tok)) {
+                Ok(a) => block_pending.push(a),
+                Err(e) => doc
+                    .diagnostics
+                    .push(e.into_diagnostic(DiagnosticCode::BadAnnotation)),
+            }
+        }
         LineKind::Kv => {
             // Allow trailing comma so the same body works as block-or-inline.
             let mut value_src: &str = tok.value.trim_end();
@@ -249,12 +253,7 @@ fn handle_block(
                     let key = if current_section.is_empty() {
                         format!("{}.{}", block_key, tok.key)
                     } else {
-                        format!(
-                            "{}.{}.{}",
-                            current_section.join("."),
-                            block_key,
-                            tok.key
-                        )
+                        format!("{}.{}.{}", current_section.join("."), block_key, tok.key)
                     };
                     doc.key_spans.insert(key.clone(), tok.key_span);
                     doc.value_spans.insert(key.clone(), tok.value_span);
@@ -304,7 +303,9 @@ fn materialize_section(config: &mut BTreeMap<String, Value>, path: &[String]) {
     }
     let mut node = config;
     for part in path {
-        let entry = node.entry(part.clone()).or_insert_with(|| Value::Dict(BTreeMap::new()));
+        let entry = node
+            .entry(part.clone())
+            .or_insert_with(|| Value::Dict(BTreeMap::new()));
         if !matches!(entry, Value::Dict(_)) {
             // Collision — overwrite to a fresh dict so we can keep walking.
             *entry = Value::Dict(BTreeMap::new());
@@ -424,9 +425,7 @@ mod tests {
 
     #[test]
     fn block_dict_with_annotation() {
-        let d = parse_str(
-            "[server]\nheaders = #{\n  @required\n  ct = \"json\"\n}#",
-        );
+        let d = parse_str("[server]\nheaders = #{\n  @required\n  ct = \"json\"\n}#");
         let server = match d.config.get("server").unwrap() {
             Value::Dict(d) => d,
             _ => panic!(),

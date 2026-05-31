@@ -7,11 +7,7 @@
 
 use std::process::ExitCode;
 
-use tomlplus_syntax::{
-    dumper, parser, validator,
-    value::Value,
-    Severity, LineIndex, BUILTIN_VARS,
-};
+use tomlplus_syntax::{dumper, parser, validator, value::Value, LineIndex, Severity, BUILTIN_VARS};
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -39,10 +35,13 @@ fn main() -> ExitCode {
     for d in &doc.diagnostics {
         let (line, col) = line_index.position(d.span.start);
         let kind = match d.severity {
-            Severity::Error   => { had_error = true; "error" }
+            Severity::Error => {
+                had_error = true;
+                "error"
+            }
             Severity::Warning => "warning",
-            Severity::Info    => "info",
-            Severity::Hint    => "hint",
+            Severity::Info => "info",
+            Severity::Hint => "hint",
         };
         eprintln!("{}:{}:{}: {}: {}", path, line + 1, col + 1, kind, d.message);
     }
@@ -65,7 +64,11 @@ fn main() -> ExitCode {
             } else {
                 for d in &errs {
                     let (line, col) = line_index.position(d.span.start);
-                    let kind = if matches!(d.severity, Severity::Warning) { "warning" } else { "error" };
+                    let kind = if matches!(d.severity, Severity::Warning) {
+                        "warning"
+                    } else {
+                        "error"
+                    };
                     eprintln!("{}:{}:{}: {}: {}", path, line + 1, col + 1, kind, d.message);
                 }
                 let fatal = errs.iter().any(|d| matches!(d.severity, Severity::Error));
@@ -104,16 +107,20 @@ fn main() -> ExitCode {
         }
     }
 
-    if had_error { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+    if had_error {
+        ExitCode::FAILURE
+    } else {
+        ExitCode::SUCCESS
+    }
 }
 
 fn format_value(v: &Value) -> String {
     match v {
-        Value::String(s)  => format!("{:?}", s),
+        Value::String(s) => format!("{:?}", s),
         Value::Integer(n) => n.to_string(),
-        Value::Float(f)   => f.to_string(),
-        Value::Bool(b)    => b.to_string(),
-        Value::Null       => "null".into(),
+        Value::Float(f) => f.to_string(),
+        Value::Bool(b) => b.to_string(),
+        Value::Null => "null".into(),
         Value::Array(_) | Value::Dict(_) => serde_json::to_string(&value_to_json(v)).unwrap(),
     }
 }
@@ -121,13 +128,15 @@ fn format_value(v: &Value) -> String {
 fn value_to_json(v: &Value) -> serde_json::Value {
     use serde_json::Value as J;
     match v {
-        Value::Null       => J::Null,
-        Value::Bool(b)    => J::Bool(*b),
+        Value::Null => J::Null,
+        Value::Bool(b) => J::Bool(*b),
         Value::Integer(n) => J::Number((*n).into()),
-        Value::Float(f)   => serde_json::Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
-        Value::String(s)  => J::String(s.clone()),
-        Value::Array(xs)  => J::Array(xs.iter().map(value_to_json).collect()),
-        Value::Dict(d)    => J::Object(
+        Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(J::Number)
+            .unwrap_or(J::Null),
+        Value::String(s) => J::String(s.clone()),
+        Value::Array(xs) => J::Array(xs.iter().map(value_to_json).collect()),
+        Value::Dict(d) => J::Object(
             d.iter()
                 .map(|(k, v)| (k.clone(), value_to_json(v)))
                 .collect(),

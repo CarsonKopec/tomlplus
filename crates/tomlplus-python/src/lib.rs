@@ -10,6 +10,16 @@
 //! The thin Python wrapper at `python/tomlplus/__init__.py` re-exports these
 //! and adds the file-loading entry points that need stdlib IO.
 
+// PyO3 0.22's macros emit `#[cfg(feature = "gil-refs")]` checks against a
+// feature the consuming crate doesn't declare; rustc warns even though the
+// behaviour is correct. Bumping to pyo3 ≥0.23 would fix it; until then,
+// silence it here.
+#![allow(
+    unexpected_cfgs,
+    clippy::useless_conversion,
+    clippy::only_used_in_recursion
+)]
+
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -91,16 +101,20 @@ impl PyAnnotation {
     }
 
     fn __repr__(&self) -> String {
-        format!("Annotation({:?}, {})", self.inner.name, arg_repr(&self.inner.arg))
+        format!(
+            "Annotation({:?}, {})",
+            self.inner.name,
+            arg_repr(&self.inner.arg)
+        )
     }
 
     fn __str__(&self) -> String {
         match &self.inner.arg {
-            AnnotationArg::None      => format!("@{}", self.inner.name),
+            AnnotationArg::None => format!("@{}", self.inner.name),
             AnnotationArg::String(s) => format!("@{}: {}", self.inner.name, s),
-            AnnotationArg::Int(n)    => format!("@{}: {}", self.inner.name, n),
-            AnnotationArg::Float(f)  => format!("@{}: {}", self.inner.name, f),
-            AnnotationArg::List(xs)  => format!("@{}: [{}]", self.inner.name, xs.join(", ")),
+            AnnotationArg::Int(n) => format!("@{}: {}", self.inner.name, n),
+            AnnotationArg::Float(f) => format!("@{}: {}", self.inner.name, f),
+            AnnotationArg::List(xs) => format!("@{}: [{}]", self.inner.name, xs.join(", ")),
         }
     }
 
@@ -111,21 +125,21 @@ impl PyAnnotation {
 
 fn arg_repr(a: &AnnotationArg) -> String {
     match a {
-        AnnotationArg::None      => "None".to_string(),
+        AnnotationArg::None => "None".to_string(),
         AnnotationArg::String(s) => format!("{:?}", s),
-        AnnotationArg::Int(n)    => n.to_string(),
-        AnnotationArg::Float(f)  => f.to_string(),
-        AnnotationArg::List(xs)  => format!("{:?}", xs),
+        AnnotationArg::Int(n) => n.to_string(),
+        AnnotationArg::Float(f) => f.to_string(),
+        AnnotationArg::List(xs) => format!("{:?}", xs),
     }
 }
 
 fn arg_to_py(py: Python<'_>, a: &AnnotationArg) -> PyObject {
     match a {
-        AnnotationArg::None      => py.None(),
+        AnnotationArg::None => py.None(),
         AnnotationArg::String(s) => s.into_py(py),
-        AnnotationArg::Int(n)    => n.into_py(py),
-        AnnotationArg::Float(f)  => f.into_py(py),
-        AnnotationArg::List(xs)  => xs.clone().into_py(py),
+        AnnotationArg::Int(n) => n.into_py(py),
+        AnnotationArg::Float(f) => f.into_py(py),
+        AnnotationArg::List(xs) => xs.clone().into_py(py),
     }
 }
 
@@ -184,12 +198,7 @@ impl PyDocument {
     }
 
     #[pyo3(signature = (key, default=None))]
-    fn get<'py>(
-        &self,
-        py: Python<'py>,
-        key: &str,
-        default: Option<PyObject>,
-    ) -> PyObject {
+    fn get<'py>(&self, py: Python<'py>, key: &str, default: Option<PyObject>) -> PyObject {
         match self.doc.config.get(key) {
             Some(v) => value_to_py(py, v),
             None => default.unwrap_or_else(|| py.None()),
@@ -202,7 +211,12 @@ impl PyDocument {
     }
 
     fn values<'py>(&self, py: Python<'py>) -> PyObject {
-        let xs: Vec<PyObject> = self.doc.config.values().map(|v| value_to_py(py, v)).collect();
+        let xs: Vec<PyObject> = self
+            .doc
+            .config
+            .values()
+            .map(|v| value_to_py(py, v))
+            .collect();
         xs.into_py(py)
     }
 
@@ -245,12 +259,7 @@ impl PyDocument {
     }
 
     #[pyo3(signature = (key_path, default=None))]
-    fn resolve<'py>(
-        &self,
-        py: Python<'py>,
-        key_path: &str,
-        default: Option<PyObject>,
-    ) -> PyObject {
+    fn resolve<'py>(&self, py: Python<'py>, key_path: &str, default: Option<PyObject>) -> PyObject {
         match resolve_dotted(&self.doc.config, key_path) {
             Some(v) => value_to_py(py, v),
             None => default.unwrap_or_else(|| py.None()),
@@ -261,7 +270,12 @@ impl PyDocument {
         self.doc
             .meta
             .get(key_path)
-            .map(|v| v.iter().cloned().map(|a| PyAnnotation { inner: a }).collect())
+            .map(|v| {
+                v.iter()
+                    .cloned()
+                    .map(|a| PyAnnotation { inner: a })
+                    .collect()
+            })
             .unwrap_or_default()
     }
 
@@ -357,10 +371,7 @@ impl KeyIter {
     }
 }
 
-fn resolve_dotted<'a>(
-    config: &'a BTreeMap<String, Value>,
-    dotted: &str,
-) -> Option<&'a Value> {
+fn resolve_dotted<'a>(config: &'a BTreeMap<String, Value>, dotted: &str) -> Option<&'a Value> {
     let mut parts = dotted.split('.');
     let first = parts.next()?;
     let mut node: &Value = config.get(first)?;
@@ -377,12 +388,12 @@ fn resolve_dotted<'a>(
 
 fn value_to_py(py: Python<'_>, v: &Value) -> PyObject {
     match v {
-        Value::Null       => py.None(),
-        Value::Bool(b)    => b.into_py(py),
+        Value::Null => py.None(),
+        Value::Bool(b) => b.into_py(py),
         Value::Integer(n) => n.into_py(py),
-        Value::Float(f)   => f.into_py(py),
-        Value::String(s)  => s.into_py(py),
-        Value::Array(xs)  => {
+        Value::Float(f) => f.into_py(py),
+        Value::String(s) => s.into_py(py),
+        Value::Array(xs) => {
             let list = PyList::empty_bound(py);
             for x in xs {
                 list.append(value_to_py(py, x)).ok();

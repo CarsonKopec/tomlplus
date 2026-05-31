@@ -12,8 +12,8 @@ use serde_json::{Map as JMap, Number as JNum, Value as JValue};
 use std::collections::BTreeMap;
 
 use tomlplus_syntax::{
-    annotation::AnnotationArg, dumper, parser, validator, value::Value as TpValue,
-    LineIndex, Severity,
+    annotation::AnnotationArg, dumper, parser, validator, value::Value as TpValue, LineIndex,
+    Severity,
 };
 
 // ── Top-level parse / validate / dumps ───────────────────────────────────────
@@ -22,7 +22,11 @@ use tomlplus_syntax::{
 #[napi]
 pub fn parse(source: String) -> Result<TomlplusDocument> {
     let doc = parser::parse(&source);
-    if let Some(first) = doc.diagnostics.iter().find(|d| matches!(d.severity, Severity::Error)) {
+    if let Some(first) = doc
+        .diagnostics
+        .iter()
+        .find(|d| matches!(d.severity, Severity::Error))
+    {
         let idx = LineIndex::new(&source);
         let (line, col) = idx.position(first.span.start);
         return Err(Error::new(
@@ -49,11 +53,13 @@ pub fn validate_all(doc: &TomlplusDocument) -> JValue {
     let errs = validator::validate(&doc.doc);
     JValue::Array(
         errs.iter()
-            .map(|e| serde_json::json!({
-                "message":  e.message,
-                "severity": severity_name(e.severity),
-                "span":     { "start": e.span.start, "end": e.span.end },
-            }))
+            .map(|e| {
+                serde_json::json!({
+                    "message":  e.message,
+                    "severity": severity_name(e.severity),
+                    "span":     { "start": e.span.start, "end": e.span.end },
+                })
+            })
             .collect(),
     )
 }
@@ -224,10 +230,7 @@ impl TomlplusDocument {
 
 // ── Conversion helpers ───────────────────────────────────────────────────────
 
-fn resolve_dotted<'a>(
-    config: &'a BTreeMap<String, TpValue>,
-    dotted: &str,
-) -> Option<&'a TpValue> {
+fn resolve_dotted<'a>(config: &'a BTreeMap<String, TpValue>, dotted: &str) -> Option<&'a TpValue> {
     let mut parts = dotted.split('.');
     let first = parts.next()?;
     let mut node: &TpValue = config.get(first)?;
@@ -242,33 +245,41 @@ fn resolve_dotted<'a>(
 
 fn value_to_json(v: &TpValue) -> JValue {
     match v {
-        TpValue::Null       => JValue::Null,
-        TpValue::Bool(b)    => JValue::Bool(*b),
+        TpValue::Null => JValue::Null,
+        TpValue::Bool(b) => JValue::Bool(*b),
         TpValue::Integer(n) => JValue::Number((*n).into()),
-        TpValue::Float(f)   => JNum::from_f64(*f).map(JValue::Number).unwrap_or(JValue::Null),
-        TpValue::String(s)  => JValue::String(s.clone()),
-        TpValue::Array(xs)  => JValue::Array(xs.iter().map(value_to_json).collect()),
+        TpValue::Float(f) => JNum::from_f64(*f)
+            .map(JValue::Number)
+            .unwrap_or(JValue::Null),
+        TpValue::String(s) => JValue::String(s.clone()),
+        TpValue::Array(xs) => JValue::Array(xs.iter().map(value_to_json).collect()),
         TpValue::Dict(d) => JValue::Object(
-            d.iter().map(|(k, v)| (k.clone(), value_to_json(v))).collect(),
+            d.iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect(),
         ),
     }
 }
 
 fn arg_to_json(a: &AnnotationArg) -> JValue {
     match a {
-        AnnotationArg::None      => JValue::Null,
+        AnnotationArg::None => JValue::Null,
         AnnotationArg::String(s) => JValue::String(s.clone()),
-        AnnotationArg::Int(n)    => JValue::Number((*n).into()),
-        AnnotationArg::Float(f)  => JNum::from_f64(*f).map(JValue::Number).unwrap_or(JValue::Null),
-        AnnotationArg::List(xs)  => JValue::Array(xs.iter().map(|s| JValue::String(s.clone())).collect()),
+        AnnotationArg::Int(n) => JValue::Number((*n).into()),
+        AnnotationArg::Float(f) => JNum::from_f64(*f)
+            .map(JValue::Number)
+            .unwrap_or(JValue::Null),
+        AnnotationArg::List(xs) => {
+            JValue::Array(xs.iter().map(|s| JValue::String(s.clone())).collect())
+        }
     }
 }
 
 fn severity_name(s: Severity) -> &'static str {
     match s {
-        Severity::Error   => "error",
+        Severity::Error => "error",
         Severity::Warning => "warning",
-        Severity::Info    => "info",
-        Severity::Hint    => "hint",
+        Severity::Info => "info",
+        Severity::Hint => "hint",
     }
 }

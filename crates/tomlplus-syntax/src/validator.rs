@@ -11,8 +11,7 @@ use crate::value::Value;
 
 /// Annotations whose semantics only fit leaf scalar values. Skipped on dicts.
 const LEAF_ONLY: &[&str] = &[
-    "type", "min", "max", "pattern", "enum",
-    "positive", "nonzero", "minlen", "maxlen",
+    "type", "min", "max", "pattern", "enum", "positive", "nonzero", "minlen", "maxlen",
 ];
 
 pub fn validate(doc: &Document) -> Vec<Diagnostic> {
@@ -56,10 +55,7 @@ fn validate_one(
         if let AnnotationArg::String(t) = &a.arg {
             if !type_matches(t, value) {
                 out.push(Diagnostic::error(
-                    format!(
-                        "[{}] expected @type: {}, got {}",
-                        key, t, value.type_name()
-                    ),
+                    format!("[{}] expected @type: {}, got {}", key, t, value.type_name()),
                     span,
                     DiagnosticCode::Validation,
                 ));
@@ -128,10 +124,7 @@ fn validate_one(
             if let Value::String(s) = value {
                 match Regex::new(&format!("^(?:{})$", pat)) {
                     Ok(re) if !re.is_match(s) => out.push(Diagnostic::error(
-                        format!(
-                            "[{}] value `{}` does not match @pattern: `{}`",
-                            key, s, pat
-                        ),
+                        format!("[{}] value `{}` does not match @pattern: `{}`", key, s, pat),
                         span,
                         DiagnosticCode::Validation,
                     )),
@@ -153,7 +146,9 @@ fn validate_one(
                     out.push(Diagnostic::error(
                         format!(
                             "[{}] value `{}` not in @enum: [{}]",
-                            key, s, choices.join(", ")
+                            key,
+                            s,
+                            choices.join(", ")
                         ),
                         span,
                         DiagnosticCode::Validation,
@@ -176,8 +171,8 @@ fn validate_one(
     }
 
     if by_name.contains_key("nonzero") {
-        let zero = matches!(value, Value::Integer(0))
-            || matches!(value, Value::Float(f) if *f == 0.0);
+        let zero =
+            matches!(value, Value::Integer(0)) || matches!(value, Value::Float(f) if *f == 0.0);
         if zero {
             out.push(Diagnostic::error(
                 format!("[{}] value must be @nonzero", key),
@@ -206,21 +201,21 @@ fn validate_one(
 
 fn type_matches(t: &str, v: &Value) -> bool {
     match t {
-        "string"      => matches!(v, Value::String(_)),
-        "int"         => matches!(v, Value::Integer(_)),
-        "float"       => matches!(v, Value::Float(_) | Value::Integer(_)),
-        "bool"        => matches!(v, Value::Bool(_)),
-        "dict"        => matches!(v, Value::Dict(_)),
-        "list"        => matches!(v, Value::Array(_)),
+        "string" => matches!(v, Value::String(_)),
+        "int" => matches!(v, Value::Integer(_)),
+        "float" => matches!(v, Value::Float(_) | Value::Integer(_)),
+        "bool" => matches!(v, Value::Bool(_)),
+        "dict" => matches!(v, Value::Dict(_)),
+        "list" => matches!(v, Value::Array(_)),
         "list[string]" => list_of(v, |e| matches!(e, Value::String(_))),
-        "list[int]"    => list_of(v, |e| matches!(e, Value::Integer(_))),
-        "list[float]"  => list_of(v, |e| matches!(e, Value::Float(_) | Value::Integer(_))),
-        "list[bool]"   => list_of(v, |e| matches!(e, Value::Bool(_))),
-        "url"   => matches!(v, Value::String(s) if is_url(s)),
+        "list[int]" => list_of(v, |e| matches!(e, Value::Integer(_))),
+        "list[float]" => list_of(v, |e| matches!(e, Value::Float(_) | Value::Integer(_))),
+        "list[bool]" => list_of(v, |e| matches!(e, Value::Bool(_))),
+        "url" => matches!(v, Value::String(s) if is_url(s)),
         "email" => matches!(v, Value::String(s) if is_email(s)),
-        "path"  => matches!(v, Value::String(_)),
+        "path" => matches!(v, Value::String(_)),
         "duration" => matches!(v, Value::String(s) if is_duration(s)),
-        _ => true,  // unknown type names pass silently, matching Python
+        _ => true, // unknown type names pass silently, matching Python
     }
 }
 
@@ -279,8 +274,8 @@ fn arg_as_int(a: &AnnotationArg) -> Option<i64> {
 fn len_of(v: &Value) -> Option<usize> {
     match v {
         Value::String(s) => Some(s.chars().count()),
-        Value::Array(a)  => Some(a.len()),
-        Value::Dict(d)   => Some(d.len()),
+        Value::Array(a) => Some(a.len()),
+        Value::Dict(d) => Some(d.len()),
         _ => None,
     }
 }

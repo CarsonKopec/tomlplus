@@ -47,7 +47,12 @@ impl<'a> ValueParser<'a> {
         env: &'a dyn Fn(&str) -> Option<String>,
         origin: Span,
     ) -> Self {
-        Self { vars, env, origin, var_refs: Vec::new() }
+        Self {
+            vars,
+            env,
+            origin,
+            var_refs: Vec::new(),
+        }
     }
 
     pub fn parse(&mut self, input: &str) -> Result<Value, ParseError> {
@@ -256,29 +261,31 @@ fn apply_binop(op: char, lhs: Value, rhs: Value, abs_start: usize) -> Result<Val
                 Ok(Value::String(s))
             }
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a + b)),
-            (Value::Float(a), Value::Float(b))     => Ok(Value::Float(a + b)),
-            (Value::Integer(a), Value::Float(b))   => Ok(Value::Float(*a as f64 + b)),
-            (Value::Float(a), Value::Integer(b))   => Ok(Value::Float(a + *b as f64)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a + b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(*a as f64 + b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a + *b as f64)),
             _ => binop_err("+", abs_start),
         },
         '-' => match (&lhs, &rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a - b)),
-            (Value::Float(a), Value::Float(b))     => Ok(Value::Float(a - b)),
-            (Value::Integer(a), Value::Float(b))   => Ok(Value::Float(*a as f64 - b)),
-            (Value::Float(a), Value::Integer(b))   => Ok(Value::Float(a - *b as f64)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a - b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(*a as f64 - b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a - *b as f64)),
             _ => binop_err("-", abs_start),
         },
         '*' => match (&lhs, &rhs) {
             (Value::Integer(a), Value::Integer(b)) => Ok(Value::Integer(a * b)),
-            (Value::Float(a), Value::Float(b))     => Ok(Value::Float(a * b)),
-            (Value::Integer(a), Value::Float(b))   => Ok(Value::Float(*a as f64 * b)),
-            (Value::Float(a), Value::Integer(b))   => Ok(Value::Float(a * *b as f64)),
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a * b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(*a as f64 * b)),
+            (Value::Float(a), Value::Integer(b)) => Ok(Value::Float(a * *b as f64)),
             _ => binop_err("*", abs_start),
         },
         '/' => match (&lhs, &rhs) {
-            (Value::Integer(a), Value::Integer(b)) if *b != 0 => Ok(Value::Float(*a as f64 / *b as f64)),
-            (Value::Float(a), Value::Float(b))     => Ok(Value::Float(a / b)),
-            (Value::Integer(a), Value::Float(b))   => Ok(Value::Float(*a as f64 / b)),
+            (Value::Integer(a), Value::Integer(b)) if *b != 0 => {
+                Ok(Value::Float(*a as f64 / *b as f64))
+            }
+            (Value::Float(a), Value::Float(b)) => Ok(Value::Float(a / b)),
+            (Value::Integer(a), Value::Float(b)) => Ok(Value::Float(*a as f64 / b)),
             (Value::Float(a), Value::Integer(b)) if *b != 0 => Ok(Value::Float(a / *b as f64)),
             _ => binop_err("/", abs_start),
         },
@@ -295,11 +302,11 @@ fn binop_err(op: &str, abs_start: usize) -> Result<Value, ParseError> {
 
 fn stringify(v: &Value) -> String {
     match v {
-        Value::String(s)  => s.clone(),
+        Value::String(s) => s.clone(),
         Value::Integer(n) => n.to_string(),
-        Value::Float(f)   => f.to_string(),
-        Value::Bool(b)    => b.to_string(),
-        Value::Null       => "null".to_string(),
+        Value::Float(f) => f.to_string(),
+        Value::Bool(b) => b.to_string(),
+        Value::Null => "null".to_string(),
         Value::Array(_) | Value::Dict(_) => format!("{:?}", v),
     }
 }
@@ -317,10 +324,10 @@ fn parse_string(raw: &str, span: Span) -> Result<Value, ParseError> {
     while let Some(c) = chars.next() {
         if c == '\\' {
             match chars.next() {
-                Some('n')  => out.push('\n'),
-                Some('t')  => out.push('\t'),
-                Some('r')  => out.push('\r'),
-                Some('"')  => out.push('"'),
+                Some('n') => out.push('\n'),
+                Some('t') => out.push('\t'),
+                Some('r') => out.push('\r'),
+                Some('"') => out.push('"'),
                 Some('\\') => out.push('\\'),
                 Some(other) => {
                     out.push('\\');
@@ -338,39 +345,60 @@ fn parse_string(raw: &str, span: Span) -> Result<Value, ParseError> {
 fn parse_number(raw: &str) -> Option<Value> {
     let (sign, rest) = match raw.strip_prefix('-') {
         Some(r) => (-1i64, r),
-        None    => (1, raw),
+        None => (1, raw),
     };
     let cleaned: String = rest.chars().filter(|c| *c != '_').collect();
 
     // Hex / oct / bin
-    if let Some(hex) = cleaned.strip_prefix("0x").or_else(|| cleaned.strip_prefix("0X")) {
-        return i64::from_str_radix(hex, 16).ok().map(|n| Value::Integer(sign * n));
+    if let Some(hex) = cleaned
+        .strip_prefix("0x")
+        .or_else(|| cleaned.strip_prefix("0X"))
+    {
+        return i64::from_str_radix(hex, 16)
+            .ok()
+            .map(|n| Value::Integer(sign * n));
     }
-    if let Some(oct) = cleaned.strip_prefix("0o").or_else(|| cleaned.strip_prefix("0O")) {
-        return i64::from_str_radix(oct, 8).ok().map(|n| Value::Integer(sign * n));
+    if let Some(oct) = cleaned
+        .strip_prefix("0o")
+        .or_else(|| cleaned.strip_prefix("0O"))
+    {
+        return i64::from_str_radix(oct, 8)
+            .ok()
+            .map(|n| Value::Integer(sign * n));
     }
-    if let Some(bin) = cleaned.strip_prefix("0b").or_else(|| cleaned.strip_prefix("0B")) {
-        return i64::from_str_radix(bin, 2).ok().map(|n| Value::Integer(sign * n));
+    if let Some(bin) = cleaned
+        .strip_prefix("0b")
+        .or_else(|| cleaned.strip_prefix("0B"))
+    {
+        return i64::from_str_radix(bin, 2)
+            .ok()
+            .map(|n| Value::Integer(sign * n));
     }
 
     if cleaned.contains('.') || cleaned.contains('e') || cleaned.contains('E') {
-        cleaned.parse::<f64>().ok().map(|f| Value::Float(sign as f64 * f))
+        cleaned
+            .parse::<f64>()
+            .ok()
+            .map(|f| Value::Float(sign as f64 * f))
     } else {
-        cleaned.parse::<i64>().ok().map(|n| Value::Integer(sign * n))
+        cleaned
+            .parse::<i64>()
+            .ok()
+            .map(|n| Value::Integer(sign * n))
     }
 }
 
 fn builtin_value(name: &str) -> Option<Value> {
     Some(match name {
-        "TRUE"  => Value::Bool(true),
+        "TRUE" => Value::Bool(true),
         "FALSE" => Value::Bool(false),
-        "NULL"  => Value::Null,
-        "NOW"   => Value::String(chrono::Utc::now().to_rfc3339()),
+        "NULL" => Value::Null,
+        "NOW" => Value::String(chrono::Utc::now().to_rfc3339()),
         "TODAY" => Value::String(chrono::Utc::now().format("%Y-%m-%d").to_string()),
         "PLATFORM" => Value::String(std::env::consts::OS.to_string()),
-        "PID"      => process_id(),
+        "PID" => process_id(),
         "HOSTNAME" => host_name(),
-        "CWD"      => current_working_dir(),
+        "CWD" => current_working_dir(),
         _ => return None,
     })
 }
@@ -586,10 +614,7 @@ fn tokenize_arith(raw: &str, abs_start: usize) -> Vec<ArithToken> {
             }
             let is_op = matches!(b, b'+' | b'-' | b'*' | b'/');
             // `//` is not an operator (treat as part of value, e.g. paths)
-            if is_op
-                && depth == 0
-                && !(b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/')
-            {
+            if is_op && depth == 0 && !(b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/') {
                 let unary_minus = b == b'-' && (buf.trim().is_empty() || prev_was_op_or_start);
                 if unary_minus {
                     if buf.trim().is_empty() {
@@ -602,9 +627,15 @@ fn tokenize_arith(raw: &str, abs_start: usize) -> Vec<ArithToken> {
                 }
                 let trimmed = buf.trim().to_string();
                 if !trimmed.is_empty() {
-                    out.push(ArithToken { text: trimmed, abs_start: buf_start });
+                    out.push(ArithToken {
+                        text: trimmed,
+                        abs_start: buf_start,
+                    });
                 }
-                out.push(ArithToken { text: (b as char).to_string(), abs_start: abs_start + i });
+                out.push(ArithToken {
+                    text: (b as char).to_string(),
+                    abs_start: abs_start + i,
+                });
                 buf.clear();
                 buf_start = abs_start + i + 1;
                 prev_was_op_or_start = true;
@@ -621,7 +652,10 @@ fn tokenize_arith(raw: &str, abs_start: usize) -> Vec<ArithToken> {
     }
     let trimmed = buf.trim().to_string();
     if !trimmed.is_empty() {
-        out.push(ArithToken { text: trimmed, abs_start: buf_start });
+        out.push(ArithToken {
+            text: trimmed,
+            abs_start: buf_start,
+        });
     }
     let _ = Severity::Error; // silence unused-import for now
     out
@@ -631,7 +665,9 @@ fn tokenize_arith(raw: &str, abs_start: usize) -> Vec<ArithToken> {
 mod tests {
     use super::*;
 
-    fn empty_env(_: &str) -> Option<String> { None }
+    fn empty_env(_: &str) -> Option<String> {
+        None
+    }
 
     fn parse_value(s: &str) -> Value {
         let vars = BTreeMap::new();
@@ -651,7 +687,9 @@ mod tests {
 
     #[test]
     fn floats() {
-        assert_eq!(parse_value("3.14"), Value::Float(3.14));
+        // Use 2.5 rather than 3.14 — clippy's `approx_constant` lint flags
+        // 3.14 as an approximation of std::f64::consts::PI.
+        assert_eq!(parse_value("2.5"), Value::Float(2.5));
         assert_eq!(parse_value("1.5e3"), Value::Float(1500.0));
     }
 
@@ -683,7 +721,9 @@ mod tests {
     #[test]
     fn inline_dict() {
         let v = parse_value("#{ a = 1, b = 2 }#");
-        let Value::Dict(d) = v else { panic!("not a dict") };
+        let Value::Dict(d) = v else {
+            panic!("not a dict")
+        };
         assert_eq!(d["a"], Value::Integer(1));
         assert_eq!(d["b"], Value::Integer(2));
     }

@@ -1,0 +1,21 @@
+# macOS-specific linker flags so PyO3-built cdylibs (tomlplus-python) link
+# successfully when invoked via plain `cargo build --workspace`. PyO3's
+# `extension-module` feature defers Python ABI symbols until the cdylib is
+# loaded into a real Python process; macOS's strict-by-default linker
+# rejects this unless we explicitly opt into dynamic_lookup.
+#
+# Linux gets away with this because GCC's default linker is lazier;
+# Windows builds the extension module against python3.lib so symbols
+# resolve at link time.
+
+[target.x86_64-apple-darwin]
+rustflags = [
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+]
+
+[target.aarch64-apple-darwin]
+rustflags = [
+    "-C", "link-arg=-undefined",
+    "-C", "link-arg=dynamic_lookup",
+]

@@ -33,7 +33,8 @@ thread_local! {
 }
 
 fn set_last_error<S: Into<String>>(msg: S) {
-    let cs = CString::new(msg.into()).unwrap_or_else(|_| CString::new("invalid error string").unwrap());
+    let cs =
+        CString::new(msg.into()).unwrap_or_else(|_| CString::new("invalid error string").unwrap());
     LAST_ERROR.with(|cell| *cell.borrow_mut() = Some(cs));
 }
 
@@ -225,7 +226,9 @@ pub unsafe extern "C" fn tomlplus_dumps(doc: *const TomlplusDoc) -> *mut c_char 
         set_last_error("doc pointer is null");
         return ptr::null_mut();
     };
-    string_into_c(Ok::<String, std::convert::Infallible>(dumper::dumps(&d.doc)))
+    string_into_c(Ok::<String, std::convert::Infallible>(dumper::dumps(
+        &d.doc,
+    )))
 }
 
 /// Library version (CARGO_PKG_VERSION). Pointer is static; do not free.
@@ -250,36 +253,44 @@ fn string_into_c<E: std::fmt::Display>(r: Result<String, E>) -> *mut c_char {
 fn value_to_json(v: &Value) -> serde_json::Value {
     use serde_json::Value as J;
     match v {
-        Value::Null       => J::Null,
-        Value::Bool(b)    => J::Bool(*b),
+        Value::Null => J::Null,
+        Value::Bool(b) => J::Bool(*b),
         Value::Integer(n) => J::Number((*n).into()),
-        Value::Float(f)   => serde_json::Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
-        Value::String(s)  => J::String(s.clone()),
-        Value::Array(xs)  => J::Array(xs.iter().map(value_to_json).collect()),
-        Value::Dict(d)    => J::Object(d.iter().map(|(k, v)| (k.clone(), value_to_json(v))).collect()),
+        Value::Float(f) => serde_json::Number::from_f64(*f)
+            .map(J::Number)
+            .unwrap_or(J::Null),
+        Value::String(s) => J::String(s.clone()),
+        Value::Array(xs) => J::Array(xs.iter().map(value_to_json).collect()),
+        Value::Dict(d) => J::Object(
+            d.iter()
+                .map(|(k, v)| (k.clone(), value_to_json(v)))
+                .collect(),
+        ),
     }
 }
 
 fn arg_to_json(a: &AnnotationArg) -> serde_json::Value {
     match a {
-        AnnotationArg::None      => serde_json::Value::Null,
+        AnnotationArg::None => serde_json::Value::Null,
         AnnotationArg::String(s) => serde_json::Value::String(s.clone()),
-        AnnotationArg::Int(n)    => serde_json::Value::Number((*n).into()),
-        AnnotationArg::Float(f)  => serde_json::Number::from_f64(*f)
+        AnnotationArg::Int(n) => serde_json::Value::Number((*n).into()),
+        AnnotationArg::Float(f) => serde_json::Number::from_f64(*f)
             .map(serde_json::Value::Number)
             .unwrap_or(serde_json::Value::Null),
-        AnnotationArg::List(xs)  => serde_json::Value::Array(
-            xs.iter().map(|s| serde_json::Value::String(s.clone())).collect(),
+        AnnotationArg::List(xs) => serde_json::Value::Array(
+            xs.iter()
+                .map(|s| serde_json::Value::String(s.clone()))
+                .collect(),
         ),
     }
 }
 
 fn severity_name(s: Severity) -> &'static str {
     match s {
-        Severity::Error   => "error",
+        Severity::Error => "error",
         Severity::Warning => "warning",
-        Severity::Info    => "info",
-        Severity::Hint    => "hint",
+        Severity::Info => "info",
+        Severity::Hint => "hint",
     }
 }
 

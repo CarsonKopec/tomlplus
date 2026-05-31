@@ -200,7 +200,23 @@ def cargo_path() -> None:
     add_to_path(Path.home() / ".cargo" / "bin")
 
 def add_ffi_to_loader_path() -> None:
-    add_to_path(TARGET_DIR / "release")
+    """Make tomlplus_ffi.{dll,so,dylib} discoverable to runtime loaders.
+
+    Different OSes use different env vars for shared-library lookup:
+      Windows : %PATH%               (LoadLibrary)
+      Linux   : $LD_LIBRARY_PATH     (ld.so / dlopen)
+      macOS   : $DYLD_LIBRARY_PATH   (dyld)
+
+    We prepend the release-build dir to whichever applies, plus PATH on
+    every OS so co-located executables resolve too.
+    """
+    release = TARGET_DIR / "release"
+    add_to_path(release)
+    if not IS_WINDOWS:
+        var = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+        existing = os.environ.get(var, "")
+        if str(release) not in existing.split(os.pathsep):
+            os.environ[var] = f"{release}{os.pathsep}{existing}" if existing else str(release)
 
 def has_tool(name: str) -> Path | None:
     p = shutil.which(name)
@@ -263,6 +279,12 @@ def update_version(new_version: str) -> None:
 
     replace(WORKSPACE_ROOT / "Cargo.toml",
             r'^(version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
+    # Workspace-deps entry that pins our own crates — needs to follow the
+    # workspace package version, otherwise `cargo publish` (and even
+    # `cargo update --workspace`) refuses to resolve.
+    replace(WORKSPACE_ROOT / "Cargo.toml",
+            r'(tomlplus-syntax\s*=\s*\{[^}]*version\s*=\s*)"[^"]+"',
+            rf'\1"{new_version}"')
     replace(PY_DIR / "pyproject.toml",
             r'^(version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
     replace(PY_DIR / "python" / "tomlplus" / "__init__.py",
@@ -391,8 +413,15 @@ def build_ruby() -> None:
     add_ffi_to_loader_path()
     step("Ruby (sanity-load gem source)")
     require_tool("ruby")
-    # Windows' LoadLibrary ignores PATH; point ffi at the absolute DLL path.
-    os.environ["TOMLPLUS_LIB"] = str(TARGET_DIR / "release" / f"tomlplus_ffi{'.dll' if IS_WINDOWS else ''}")
+    # Point Ruby's FFI at the absolute library path. Windows' LoadLibrary
+    # ignores PATH; Linux/macOS need the platform-correct lib*.so/dylib name.
+    if IS_WINDOWS:
+        lib_name = "tomlplus_ffi.dll"
+    elif sys.platform == "darwin":
+        lib_name = "libtomlplus_ffi.dylib"
+    else:
+        lib_name = "libtomlplus_ffi.so"
+    os.environ["TOMLPLUS_LIB"] = str(TARGET_DIR / "release" / lib_name)
     run(["ruby", "-Ilib", "-e", "require 'tomlplus'; puts Tomlplus::VERSION"], cwd=RUBY_DIR)
 
 GRADLE_VERSION = "8.10.2"

@@ -45,8 +45,15 @@ impl Annotation {
     pub fn is_validation(&self) -> bool {
         matches!(
             self.name.as_str(),
-            "min" | "max" | "minlen" | "maxlen" | "pattern"
-                | "enum" | "nonzero" | "positive" | "nonempty"
+            "min"
+                | "max"
+                | "minlen"
+                | "maxlen"
+                | "pattern"
+                | "enum"
+                | "nonzero"
+                | "positive"
+                | "nonempty"
         )
     }
 
@@ -130,7 +137,14 @@ pub fn parse_annotation(line: &str, line_span: Span) -> Result<Annotation, Parse
         });
     };
 
-    Ok(Annotation { name, arg, span: line_span, name_span, arg_span, list_item_spans })
+    Ok(Annotation {
+        name,
+        arg,
+        span: line_span,
+        name_span,
+        arg_span,
+        list_item_spans,
+    })
 }
 
 fn parse_arg(raw: &str, arg_span: Span) -> Result<(AnnotationArg, Vec<Span>), ParseError> {
