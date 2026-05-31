@@ -1,6 +1,6 @@
 {
   "name": "tomlplus",
-  "version": "2.0.0",
+  "version": "2.0.0-rc.1",
   "description": "TOML+ — extended configuration format (Rust-backed Node.js native module)",
   "main": "index.js",
   "types": "index.d.ts",

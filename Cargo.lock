@@ -1053,7 +1053,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-cli"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "serde_json",
  "tomlplus-syntax",
@@ -1061,7 +1061,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-ffi"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "serde_json",
  "tomlplus-syntax",
@@ -1069,7 +1069,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-lsp"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "dashmap 6.1.0",
  "ropey",
@@ -1082,7 +1082,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-node"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "napi",
  "napi-build",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-python"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "pyo3",
  "tomlplus-syntax",
@@ -1102,7 +1102,7 @@ dependencies = [
 
 [[package]]
 name = "tomlplus-syntax"
-version = "2.0.0"
+version = "2.0.0-rc.1"
 dependencies = [
  "chrono",
  "hostname",

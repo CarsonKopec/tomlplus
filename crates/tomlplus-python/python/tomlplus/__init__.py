@@ -20,7 +20,7 @@ from ._native import (
 )
 
 # Python-package version (separate from the underlying Rust crate version).
-__version__ = "2.0.0"
+__version__ = "2.0.0-rc.1"
 
 __all__ = [
     "load",
