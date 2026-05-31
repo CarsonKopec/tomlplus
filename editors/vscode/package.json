@@ -2,8 +2,12 @@
   "name": "tomlplus",
   "displayName": "TOML+",
   "description": "TOML+ language support — syntax, validation, hover, completion via tomlplus-lsp.",
-  "version": "0.1.0",
-  "publisher": "Carson Kopec",
+  "version": "2.0.0",
+  "publisher": "CarsonKopec",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/CarsonKopec/tomlplus" },
+  "bugs":       { "url": "https://github.com/CarsonKopec/tomlplus/issues" },
+  "homepage":   "https://github.com/CarsonKopec/tomlplus",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages", "Linters"],
   "main": "./out/extension.js",
@@ -38,8 +42,11 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch":   "tsc -p ./ -w"
+    "esbuild-base":      "esbuild ./client/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "compile":           "npm run check-types && npm run esbuild-base -- --minify",
+    "watch":             "npm run esbuild-base -- --sourcemap --watch",
+    "check-types":       "tsc --noEmit",
+    "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1"
@@ -47,6 +54,7 @@
   "devDependencies": {
     "@types/node":   "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "esbuild":       "^0.24.0",
     "typescript":    "^5.4.0"
   }
 }

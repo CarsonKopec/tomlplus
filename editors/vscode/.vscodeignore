@@ -1,0 +1,39 @@
+# vsce uses this file the same way npm uses .npmignore: anything matched
+# here is left out of the .vsix bundle. Since we esbuild the extension into
+# out/extension.js, runtime deps and TypeScript sources can all go.
+
+# ── Source + transpile artefacts ─────────────────────────────────────────────
+client/**
+**/*.ts
+**/tsconfig*.json
+
+# ── Sourcemaps (uncomment to keep for production debugging) ──────────────────
+**/*.map
+
+# ── Dev / editor metadata ────────────────────────────────────────────────────
+.vscode/**
+.vscode-test/**
+.github/**
+.gitignore
+.yarnrc
+.eslintrc*
+.prettierrc*
+.npmrc
+
+# ── Test + scratch files ─────────────────────────────────────────────────────
+**/*.test.*
+test/**
+__tests__/**
+*.log
+
+# ── Runtime deps: bundled into out/extension.js by esbuild ───────────────────
+node_modules/**
+
+# ── Force-include (override patterns above) ──────────────────────────────────
+!LICENSE
+!README.md
+!CHANGELOG.md
+!package.json
+!language-configuration.json
+!syntaxes/**
+!out/extension.js

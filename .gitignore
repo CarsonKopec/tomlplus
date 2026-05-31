@@ -1,6 +1,4 @@
 # General
-release.py
-PUBLISHING.md
 secrets/
 secrets.env
 
@@ -13,6 +11,7 @@ Cargo.lock.bak
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .pytest_cache/
 .coverage
 *.egg-info/
@@ -64,6 +63,7 @@ release/
 .vscode/
 !editors/vscode/.vscode/
 .idea/
+.claude/settings.local.json
 *.swp
 .DS_Store
 Thumbs.db

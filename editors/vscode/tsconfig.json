@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2022",
-    "outDir": "out",
-    "lib": ["ES2022"],
-    "sourceMap": true,
-    "rootDir": "client",
-    "strict": true
+    "module":   "commonjs",
+    "target":   "ES2022",
+    "lib":      ["ES2022"],
+    "rootDir":  "client",
+    "strict":   true,
+    "noEmit":   true
   },
   "include": ["client/**/*.ts"],
   "exclude": ["node_modules", "out"]
