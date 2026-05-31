@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name        = "tomlplus"
-version     = "2.0.0-rc.1"
+version     = "2.0.0-rc.0.1"
 description = "TOML+ — extended configuration format (Rust-backed)"
 readme      = "README.md"
 license     = { text = "MIT" }

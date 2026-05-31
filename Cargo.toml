@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version      = "2.0.0-rc.1"
+version      = "2.0.0-rc.0.1"
 edition      = "2021"
 license      = "MIT"
 authors      = ["Carson Kopec <kopeccarson@gmail.com>"]
@@ -22,7 +22,7 @@ rust-version = "1.75"
 # Path + version: path is used for local builds, version is what dependents
 # resolve from crates.io after publish. Both fields are required so
 # `cargo publish` can strip the path and rely on the registry version.
-tomlplus-syntax = { path = "crates/tomlplus-syntax", version = "2.0.0-rc.1" }
+tomlplus-syntax = { path = "crates/tomlplus-syntax", version = "2.0.0-rc.0.1" }
 
 # Async runtime + LSP
 tokio       = { version = "1.40", features = ["full"] }

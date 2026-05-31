@@ -2,7 +2,7 @@
   "name": "tomlplus",
   "displayName": "TOML+",
   "description": "TOML+ language support — syntax, validation, hover, completion via tomlplus-lsp.",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.0.1",
   "publisher": "CarsonKopec",
   "license": "MIT",
   "repository": { "type": "git", "url": "https://github.com/CarsonKopec/tomlplus" },
