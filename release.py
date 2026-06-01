@@ -42,6 +42,7 @@ import stat
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -671,11 +672,72 @@ def package_go() -> None:
     step("Package: Go module")
     info("Go modules publish by git tag — no artefact to stage.")
 
+# ── Publish: "already up there?" probes ──────────────────────────────────────
+# Each registry has a metadata endpoint that 200s if <name>@<version> exists
+# and 404s otherwise. We hit it before doing any actual upload so re-runs
+# after a partial failure are idempotent — the publish step skips registries
+# that already have this exact version instead of erroring out.
+#
+# A probe that can't reach the network (timeout, DNS, 5xx) returns False and
+# we fall through to the real publish attempt. The publish itself will fail
+# loudly if there's a genuine duplicate; we only optimise the happy case.
+
+def _http_status(url: str, timeout: float = 8.0) -> int:
+    """Return the HTTP status code for `url`, or 0 on network error."""
+    req = urllib.request.Request(url, headers={"User-Agent": "tomlplus-release/2"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return 0
+
+def _pypi_has(name: str, version: str) -> bool:
+    return _http_status(f"https://pypi.org/pypi/{name}/{version}/json") == 200
+
+def _npm_has(name: str, version: str) -> bool:
+    return _http_status(f"https://registry.npmjs.org/{name}/{version}") == 200
+
+def _crates_has(name: str, version: str) -> bool:
+    return _http_status(f"https://crates.io/api/v1/crates/{name}/{version}") == 200
+
+def _rubygems_has(name: str, version: str) -> bool:
+    return _http_status(f"https://rubygems.org/api/v2/rubygems/{name}/versions/{version}.json") == 200
+
+def _nuget_has(name: str, version: str) -> bool:
+    # NuGet IDs are case-insensitive but the flatcontainer endpoint expects lowercase.
+    n = name.lower()
+    return _http_status(f"https://api.nuget.org/v3-flatcontainer/{n}/{version}/{n}.{version}.nupkg") == 200
+
+def _maven_central_has(group: str, artifact: str, version: str) -> bool:
+    path = group.replace(".", "/")
+    return _http_status(f"https://repo1.maven.org/maven2/{path}/{artifact}/{version}/{artifact}-{version}.pom") == 200
+
+def _ovsx_has(publisher: str, name: str, version: str) -> bool:
+    return _http_status(f"https://open-vsx.org/api/{publisher}/{name}/{version}") == 200
+
+def _gh_release_has(tag: str) -> bool:
+    """`gh release view` returns 0 if the release exists, non-zero otherwise."""
+    if not has_tool("gh"):
+        return False
+    r = subprocess.run(["gh", "release", "view", tag], capture_output=True, cwd=WORKSPACE_ROOT)
+    return r.returncode == 0
+
+def _skip_if_published(label: str, exists: bool) -> bool:
+    """If `exists`, log a skip line and return True. Caller should `return` on True."""
+    if exists:
+        skip(f"{label} already on registry — skipping (re-runs are idempotent).")
+    return exists
+
 # ── Publish steps ────────────────────────────────────────────────────────────
 def publish_python(dry_run: bool) -> None:
     package_python()
     if dry_run:
         skip("DryRun — skipping twine upload")
+        return
+    ver = workspace_version()
+    if _skip_if_published(f"tomlplus {ver} on PyPI", _pypi_has("tomlplus", ver)):
         return
     token = require_env("PYPI_TOKEN", "upload Python wheels to PyPI")
     ensure_py_venv()
@@ -685,13 +747,19 @@ def publish_python(dry_run: bool) -> None:
     env = os.environ.copy()
     env["TWINE_USERNAME"] = "__token__"
     env["TWINE_PASSWORD"] = token
-    run(["twine", "upload", "--non-interactive", *[str(w) for w in wheels]], env=env)
+    # `twine upload --skip-existing` is a belt-and-suspenders backup for the
+    # race where another runner publishes between our probe and our upload.
+    run(["twine", "upload", "--non-interactive", "--skip-existing",
+         *[str(w) for w in wheels]], env=env)
     ok("Published to PyPI.")
 
 def publish_node(dry_run: bool) -> None:
     package_node()
     if dry_run:
         run(["npm", "publish", "--access", "public", "--dry-run"], cwd=NODE_DIR)
+        return
+    ver = workspace_version()
+    if _skip_if_published(f"tomlplus {ver} on npm", _npm_has("tomlplus", ver)):
         return
     run(["npx", "napi", "prepublish", "--skip-gh-release"], cwd=NODE_DIR)
     run(["npm", "publish", "--access", "public"], cwd=NODE_DIR)
@@ -705,6 +773,9 @@ def publish_wasm(dry_run: bool) -> None:
     if dry_run:
         run(["npm", "publish", "--access", "public", "--dry-run"], cwd=pkg)
         return
+    ver = workspace_version()
+    if _skip_if_published(f"tomlplus-wasm {ver} on npm", _npm_has("tomlplus-wasm", ver)):
+        return
     run(["npm", "publish", "--access", "public"], cwd=pkg)
     ok("Published tomlplus-wasm to npm.")
 
@@ -713,6 +784,7 @@ def publish_crates(dry_run: bool) -> None:
     cargo_path()
     plan = [("tomlplus-syntax", True), ("tomlplus-ffi", False),
             ("tomlplus-cli", False), ("tomlplus-lsp", False)]
+    ver = workspace_version()
     if dry_run:
         run(["cargo", "publish", "-p", "tomlplus-syntax", "--dry-run"], cwd=WORKSPACE_ROOT)
         for name, _ in plan[1:]:
@@ -720,13 +792,16 @@ def publish_crates(dry_run: bool) -> None:
         return
     require_env("CARGO_REGISTRY_TOKEN", "publish Rust crates")
     for name, verify in plan:
+        if _crates_has(name, ver):
+            skip(f"{name} {ver} already on crates.io — skipping.")
+            continue
         args = ["cargo", "publish", "-p", name]
         if not verify:
             args.append("--no-verify")
         run(args, cwd=WORKSPACE_ROOT)
         if verify:
             time.sleep(10)  # let crates.io index
-    ok("All Rust crates published.")
+    ok("Rust crates publish step complete.")
 
 def publish_vscode(dry_run: bool) -> None:
     """Publish the VS Code extension. Both stores are optional — set
@@ -747,20 +822,39 @@ def publish_vscode(dry_run: bool) -> None:
         info("Users will install via `code --install-extension <release/*.vsix>`.")
         return
 
+    ver = workspace_version()
+
     if vsce_pat:
+        # The Marketplace doesn't have a clean unauthenticated metadata
+        # endpoint, so we run `vsce publish` with output captured and
+        # treat the "version already exists" failure as a skip rather
+        # than an error. Everything else still fails loudly.
         env = os.environ.copy(); env["VSCE_PAT"] = vsce_pat
-        run(["npx", "vsce", "publish", "--no-dependencies"], cwd=VSCODE_DIR, env=env)
-        ok("Published to VS Code Marketplace.")
+        r = run(["npx", "vsce", "publish", "--no-dependencies"],
+                cwd=VSCODE_DIR, env=env, capture=True, check=False)
+        combined = ((r.stdout or "") + (r.stderr or "")).lower()
+        if r.returncode == 0:
+            if r.stdout: console.print(r.stdout.rstrip())
+            ok("Published to VS Code Marketplace.")
+        elif "already exists" in combined or "is already" in combined:
+            skip(f"VS Code Marketplace already has tomlplus@{ver} — treating as success.")
+        else:
+            if r.stdout: console.print(r.stdout.rstrip())
+            if r.stderr: console.print(r.stderr.rstrip())
+            raise CommandError(f"vsce publish failed with exit {r.returncode}")
     else:
         skip("VSCE_PAT not set — skipped VS Code Marketplace.")
 
     if ovsx_pat:
-        vsix = next(iter(RELEASE_DIR.glob("tomlplus-*.vsix")), None)
-        if vsix:
-            run(["npx", "ovsx", "publish", str(vsix), "-p", ovsx_pat])
-            ok("Published to Open VSX.")
+        if _ovsx_has("CarsonKopec", "tomlplus", ver):
+            skip(f"Open VSX already has CarsonKopec.tomlplus@{ver} — skipping.")
         else:
-            warn("No .vsix found in release/ — skipping Open VSX upload.")
+            vsix = next(iter(RELEASE_DIR.glob("tomlplus-*.vsix")), None)
+            if vsix:
+                run(["npx", "ovsx", "publish", str(vsix), "-p", ovsx_pat])
+                ok("Published to Open VSX.")
+            else:
+                warn("No .vsix found in release/ — skipping Open VSX upload.")
     else:
         skip("OVSX_PAT not set — skipped Open VSX.")
 
@@ -781,10 +875,15 @@ def publish_java(dry_run: bool) -> None:
     """
     package_java()
     g = gradle_bin()
+    ver = workspace_version()
 
     if dry_run:
         skip("DryRun — staging to ~/.m2 only (no Central upload).")
         run([str(g), "-q", "--no-daemon", "publishToMavenLocal"], cwd=JAVA_DIR)
+        return
+
+    if _maven_central_has("io.github.carsonkopec", "tomlplus-java", ver):
+        skip(f"io.github.carsonkopec:tomlplus-java:{ver} already on Maven Central — skipping.")
         return
 
     # No-creds path: stage but don't upload. Useful when MAVEN secrets
@@ -819,6 +918,12 @@ def publish_dotnet(dry_run: bool) -> None:
     if dry_run:
         skip(f"DryRun — would push {nupkg.name} to {feed}")
         return
+    # Only probe nuget.org by default. For private feeds we just rely on
+    # `--skip-duplicate` to avoid re-push errors.
+    ver = workspace_version()
+    if feed.startswith("https://api.nuget.org") and _nuget_has("Tomlplus", ver):
+        skip(f"Tomlplus {ver} already on NuGet.org — skipping.")
+        return
     api_key = require_env("NUGET_API_KEY", "publish a NuGet package")
     step(f"Publish → {feed} ({nupkg.name})")
     run(["dotnet", "nuget", "push", str(nupkg),
@@ -829,6 +934,9 @@ def publish_ruby(dry_run: bool) -> None:
     package_ruby()
     if dry_run:
         skip("DryRun — skipping gem push")
+        return
+    ver = workspace_version()
+    if _skip_if_published(f"tomlplus {ver} on RubyGems", _rubygems_has("tomlplus", ver)):
         return
     gem = next(iter(RELEASE_DIR.glob("tomlplus-*.gem")), None)
     if not gem:
@@ -858,6 +966,12 @@ def publish_github_release(dry_run: bool) -> None:
     assets = [str(p) for p in RELEASE_DIR.iterdir() if p.is_file()]
     if not assets:
         raise CommandError(f"No staged assets in {RELEASE_DIR}.")
+    if _gh_release_has(tag):
+        # Re-runs after a partial publish: upload any missing assets to
+        # the existing release rather than failing on "release exists".
+        skip(f"GitHub release {tag} already exists — uploading any missing assets with --clobber.")
+        run(["gh", "release", "upload", tag, "--clobber", *assets])
+        return
     run(["gh", "release", "create", tag, "--title", f"TOML+ {tag}",
          "--generate-notes", *assets])
     ok(f"Released {tag} with {len(assets)} assets.")
