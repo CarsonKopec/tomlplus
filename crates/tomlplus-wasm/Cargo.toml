@@ -4,7 +4,7 @@ description = "WebAssembly bindings for the TOML+ language core (browser / Node 
 # Fields below are inlined (not `{ workspace = true }`) because wasm-pack's
 # bundled manifest parser doesn't understand workspace inheritance on some
 # older arm64-macOS builds shipped by jetli/wasm-pack-action.
-version     = "2.0.0"
+version     = "1.0.0"
 edition     = "2021"
 license     = "MIT"
 authors     = ["Carson Kopec <kopeccarson@gmail.com>"]

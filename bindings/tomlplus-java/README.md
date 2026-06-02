@@ -6,10 +6,16 @@ Java bindings to `tomlplus_ffi` via [JNA](https://github.com/java-native-access/
 
 ```xml
 <dependency>
-    <groupId>com.tomlplus</groupId>
-    <artifactId>tomlplus</artifactId>
-    <version>2.0.0</version>
+    <groupId>io.github.carsonkopec</groupId>
+    <artifactId>tomlplus-java</artifactId>
+    <version>1.0.0</version>
 </dependency>
+```
+
+Or Gradle:
+
+```kotlin
+implementation("io.github.carsonkopec:tomlplus-java:1.0.0")
 ```
 
 JNA needs `tomlplus_ffi.dll` / `libtomlplus_ffi.so` / `libtomlplus_ffi.dylib`

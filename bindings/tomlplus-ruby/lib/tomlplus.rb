@@ -2,7 +2,7 @@ require "ffi"
 require "json"
 
 module Tomlplus
-  VERSION = "2.0.0"
+  VERSION = "1.0.0"
 
   # Low-level FFI wrapper. End users shouldn't need this.
   module Native

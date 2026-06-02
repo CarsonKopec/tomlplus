@@ -13,9 +13,9 @@ plugins {
     id("com.vanniktech.maven.publish") version "0.30.0"
 }
 
-// Maven coordinates: io.github.carsonkopec:tomlplus-java:2.0.0
+// Maven coordinates: io.github.carsonkopec:tomlplus-java:1.0.0
 group   = "io.github.carsonkopec"
-version = "2.0.0"
+version = "1.0.0"
 
 java {
     // Build with whatever JDK is on PATH (>=17), emit 17-compatible bytecode

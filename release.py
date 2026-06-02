@@ -267,8 +267,15 @@ def ensure_py_venv() -> Path:
 
 # ── Version management ───────────────────────────────────────────────────────
 def update_version(new_version: str) -> None:
-    if not re.match(r"^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$", new_version):
-        raise CommandError(f"Version {new_version!r} is not semver (X.Y.Z).")
+    # Policy: plain MAJOR.MINOR.PATCH only. No `-rc.N` / `-beta.X` / `+build`
+    # suffixes. The VS Code Marketplace flat-out rejects prerelease tags, and
+    # keeping every other registry on the same straight-SemVer scheme means
+    # one tag per release works everywhere with no special-casing.
+    if not re.match(r"^\d+\.\d+\.\d+$", new_version):
+        raise CommandError(
+            f"Version {new_version!r} is not plain SemVer (X.Y.Z). "
+            "Prerelease suffixes are not allowed — bump major/minor/patch instead."
+        )
     step(f"Bumping version → [version]{new_version}[/version]")
 
     def replace(path: Path, pattern: str, replacement: str) -> None:
@@ -278,22 +285,38 @@ def update_version(new_version: str) -> None:
             path.write_text(new_text, encoding="utf-8")
             ok(str(path.relative_to(WORKSPACE_ROOT)))
 
+    # Rust workspace — and its self-pin in [workspace.dependencies].
     replace(WORKSPACE_ROOT / "Cargo.toml",
             r'^(version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
-    # Workspace-deps entry that pins our own crates — needs to follow the
-    # workspace package version, otherwise `cargo publish` (and even
-    # `cargo update --workspace`) refuses to resolve.
     replace(WORKSPACE_ROOT / "Cargo.toml",
             r'(tomlplus-syntax\s*=\s*\{[^}]*version\s*=\s*)"[^"]+"',
             rf'\1"{new_version}"')
+    # tomlplus-wasm inlines its version (not workspace-inherited) because
+    # wasm-pack's older Cargo.toml parser used to choke on inheritance.
+    replace(WASM_DIR / "Cargo.toml",
+            r'^(version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
+
+    # Python wheel
     replace(PY_DIR / "pyproject.toml",
             r'^(version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
     replace(PY_DIR / "python" / "tomlplus" / "__init__.py",
             r'__version__\s*=\s*"[^"]+"', f'__version__ = "{new_version}"')
+
+    # JS/TS packages
     replace(NODE_DIR / "package.json",
             r'("version"\s*:\s*)"[^"]+"', rf'\1"{new_version}"')
     replace(VSCODE_DIR / "package.json",
             r'("version"\s*:\s*)"[^"]+"', rf'\1"{new_version}"')
+
+    # Non-Rust bindings (consume tomlplus-ffi).
+    replace(RUBY_DIR / "tomlplus.gemspec",
+            r'(s\.version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
+    replace(RUBY_DIR / "lib" / "tomlplus.rb",
+            r'(VERSION\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
+    replace(DOTNET_DIR / "Tomlplus.csproj",
+            r'(<Version>)[^<]+(</Version>)', rf'\g<1>{new_version}\g<2>')
+    replace(JAVA_DIR / "build.gradle.kts",
+            r'(^version\s*=\s*)"[^"]+"', rf'\1"{new_version}"')
 
     cargo_path()
     run(["cargo", "update", "--workspace"], cwd=WORKSPACE_ROOT)
@@ -835,7 +858,7 @@ def publish_vscode(dry_run: bool) -> None:
         combined = ((r.stdout or "") + (r.stderr or "")).lower()
         if r.returncode == 0:
             if r.stdout: console.print(r.stdout.rstrip())
-            ok("Published to VS Code Marketplace.")
+            ok(f"Published tomlplus@{ver} to VS Code Marketplace.")
         elif "already exists" in combined or "is already" in combined:
             skip(f"VS Code Marketplace already has tomlplus@{ver} — treating as success.")
         else:

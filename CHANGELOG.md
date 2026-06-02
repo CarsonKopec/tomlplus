@@ -1,20 +1,19 @@
 # Changelog
 
-All notable changes to TOML+ live here. Versions follow [SemVer](https://semver.org/).
-
-The version refers to the **`tomlplus-syntax`** core; every binding tracks
-the same number with very rare per-binding hotfix patches (e.g. `2.0.1` of
-the Python wheel without bumping the Rust core would get a `+py.1` suffix).
+All notable changes to TOML+ live here. Versions follow plain
+[SemVer](https://semver.org/) — `MAJOR.MINOR.PATCH` only, no `-rc.X` /
+`-beta` / `+build` suffixes. The version refers to the
+**`tomlplus-syntax`** core; every binding ships under the same number.
 
 ## [Unreleased]
 
 Nothing yet — the next release will collect items here.
 
-## [2.0.0] — 2026-XX-XX (pre-release)
+## [1.0.0] — 2026-06-01
 
-The first release of the Rust-rewritten language. Replaces the pure-Python
-`tomlplus` 1.x reference implementation with a Rust core (`tomlplus-syntax`)
-that every binding shares.
+The first stable release of the Rust-rewritten language. Replaces the
+pure-Python `tomlplus` reference implementation with a Rust core
+(`tomlplus-syntax`) that every binding shares.
 
 ### Added — language
 
@@ -92,9 +91,9 @@ that every binding shares.
   plus the Rust CLI as the canonical reference). Outputs are
   JSON-compared via a normalised deep-diff (numeric tolerance + key
   ordering ignored). All 8 bindings produce byte-identical output as
-  of 2.0.0.
+  of 1.0.0.
 
-### Changed (from pre-release / 1.x)
+### Changed (from the pure-Python reference implementation)
 
 * Inline-dict closer unified from `}` to `}#` so both inline and block
   dicts use the same delimiter pair.
@@ -107,7 +106,7 @@ that every binding shares.
   spurious validation errors. `@tag`, `@deprecated`, `@required` still
   apply.
 
-### Known gaps (planned for 2.1)
+### Known gaps (planned for 1.1)
 
 * Multi-line strings (`"""…"""`).
 * RFC 3339 datetime literals.

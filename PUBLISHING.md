@@ -53,7 +53,7 @@ cd crates\tomlplus-python
 
 # One-shot, current platform only:
 maturin build --release
-# Wheels land in `target/wheels/tomlplus-2.0.0-cp38-abi3-win_amd64.whl`
+# Wheels land in `target/wheels/tomlplus-1.0.0-cp38-abi3-win_amd64.whl`
 
 # Or via the dispatcher (handles venv, all targets):
 py -3 release.py publish -t python --dry-run   # rehearsal
@@ -157,7 +157,7 @@ which targets the new Sonatype **Central Portal** (`central.sonatype.com`).
 Bootstraps a local Gradle distribution into `.gradle-local/` so no system
 install is needed.
 
-**Coordinates**: `io.github.carsonkopec:tomlplus-java:2.0.0`
+**Coordinates**: `io.github.carsonkopec:tomlplus-java:1.0.0`
 
 ```pwsh
 py -3 release.py test    -t java       # JUnit 5 via Gradle
@@ -209,7 +209,7 @@ properties that the Vanniktech plugin reads.
 py -3 release.py package -t java
 
 # Inspect — the layout should mirror exactly what Central will accept:
-ls $HOME\.m2\repository\io\github\carsonkopec\tomlplus-java\2.0.0\
+ls $HOME\.m2\repository\io\github\carsonkopec\tomlplus-java\1.0.0\
 # Expect: .jar, -sources.jar, -javadoc.jar, .pom, .module, plus matching
 # .asc signature files when SIGN_KEY is set.
 ```
@@ -238,7 +238,7 @@ and click *Publish* manually.
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("io.github.carsonkopec:tomlplus-java:2.0.0")
+    implementation("io.github.carsonkopec:tomlplus-java:1.0.0")
 }
 ```
 
@@ -247,7 +247,7 @@ dependencies {
 <dependency>
     <groupId>io.github.carsonkopec</groupId>
     <artifactId>tomlplus-java</artifactId>
-    <version>2.0.0</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -259,7 +259,7 @@ Source under `bindings/tomlplus-dotnet`. .NET 8 class library; uses P/Invoke.
 
 ```pwsh
 py -3 release.py test    -t dotnet     # xUnit
-py -3 release.py package -t dotnet     # produces Tomlplus.2.0.0.nupkg
+py -3 release.py package -t dotnet     # produces Tomlplus.1.0.0.nupkg
 py -3 release.py publish -t dotnet     # pushes to NUGET_FEED_URL (default nuget.org)
 ```
 
@@ -297,9 +297,9 @@ Publish:
 
 ```pwsh
 # 1. Tag the workspace (the release action does this for you):
-git tag v2.0.0 && git push --tags
+git tag v1.0.0 && git push --tags
 # 2. Consumers then:
-go get github.com/CarsonKopec/tomlplus/bindings/tomlplus-go@v2.0.0
+go get github.com/CarsonKopec/tomlplus/bindings/tomlplus-go@v1.0.0
 ```
 
 Users install `tomlplus_ffi.{dll,so,dylib}` themselves — Go modules

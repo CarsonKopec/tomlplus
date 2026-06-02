@@ -561,12 +561,10 @@ class TestEdgeCases:
         assert not Annotation("required").is_tag
 
     def test_version(self):
-        # Major-version check: we're in the 2.x line (Rust-backed wheel).
-        # Accepts plain releases ("2.0.0") and pre-releases ("2.0.0-rc.1",
-        # "2.1.0a3", "2.0.0+build.5", …) — anything valid for PyPI / Cargo
-        # that still belongs to major version 2.
+        # Project policy: plain MAJOR.MINOR.PATCH only. No prerelease
+        # suffixes, no build metadata. Same scheme across every binding.
         import re
-        assert re.match(r"^2\.\d+\.\d+([-+].+)?$", tomlplus.__version__), \
+        assert re.match(r"^\d+\.\d+\.\d+$", tomlplus.__version__), \
             f"unexpected __version__: {tomlplus.__version__!r}"
 
 

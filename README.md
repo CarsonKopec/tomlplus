@@ -3,7 +3,7 @@
 [![CI](https://github.com/CarsonKopec/tomlplus/actions/workflows/ci.yml/badge.svg)](https://github.com/CarsonKopec/tomlplus/actions/workflows/ci.yml)
 [![Release](https://github.com/CarsonKopec/tomlplus/actions/workflows/release.yml/badge.svg)](https://github.com/CarsonKopec/tomlplus/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/github/license/CarsonKopec/tomlplus)](LICENSE)
-[![Latest release](https://img.shields.io/github/v/release/CarsonKopec/tomlplus?include_prereleases&color=blue)](https://github.com/CarsonKopec/tomlplus/releases)
+[![Latest release](https://img.shields.io/github/v/release/CarsonKopec/tomlplus?color=blue)](https://github.com/CarsonKopec/tomlplus/releases)
 
 TOML, but with three things it didn't have:
 
@@ -52,7 +52,7 @@ go get github.com/CarsonKopec/tomlplus/bindings/tomlplus-go
 Java (Gradle):
 
 ```kotlin
-implementation("io.github.carsonkopec:tomlplus-java:2.0.0")
+implementation("io.github.carsonkopec:tomlplus-java:1.0.0")
 ```
 
 CLI and language server:
@@ -142,11 +142,11 @@ token setup.
 
 ## Status
 
-`2.0.0-rc.x` series. CI is green across Linux / Windows / macOS-arm64 for
-every binding. The macOS Intel runner got retired by GitHub, so Intel-Mac
-users install from source for now. Registry pushes (PyPI, npm, crates.io,
-NuGet, RubyGems, Maven Central, Open VSX) wait on one-time account setup;
-see [PUBLISHING.md](PUBLISHING.md).
+`1.0.0`. CI is green across Linux / Windows / macOS-arm64 for every
+binding. The macOS Intel runner got retired by GitHub, so Intel-Mac users
+install from source for now. Versions are plain `MAJOR.MINOR.PATCH` —
+patch for fixes, minor for additions, major for breaking changes. No
+`-rc.X` / `-beta` suffixes; every registry takes the same tag.
 
 ## License
 
